@@ -1,0 +1,38 @@
+# Compiled output
+/out/
+*.js
+*.js.map
+*.d.ts
+
+# Node modules
+node_modules/
+**/node_modules/
+
+# Build outputs  
+out/
+
+# VS Code extension package
+*.vsix
+
+# Logs
+*.log
+npm-debug.log*
+
+# macOS
+.DS_Store
+
+# IDE
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# Temporary files
+.tmp/
+.temp/
+
+# Lock files (keep package-lock.json for consistency)
+ui/package-lock.json
+
+.vscode-test/
