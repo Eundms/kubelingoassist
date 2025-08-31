@@ -77,6 +77,18 @@ async function openTranslationFile(uri?: vscode.Uri) {
     return;
   }
 
+  // Check if this is a kubernetes/website repository
+  if (gitUtils) {
+    const isK8sRepo = await gitUtils.isKubernetesWebsiteRepository();
+    if (!isK8sRepo) {
+      vscode.window.showErrorMessage(
+        'This extension only works with the Kubernetes documentation repository (kubernetes/website). ' +
+        'Please open the kubernetes/website repository to use translation features.'
+      );
+      return;
+    }
+  }
+
   const currentEditor = vscode.window.activeTextEditor;
   let filePath: string | undefined;
 
@@ -114,6 +126,16 @@ async function openReviewFile() {
   if (!gitUtils) {
     console.log('Git utilities not available');
     vscode.window.showErrorMessage('Git utilities not available');
+    return;
+  }
+
+  // Check if this is a kubernetes/website repository
+  const isK8sRepo = await gitUtils.isKubernetesWebsiteRepository();
+  if (!isK8sRepo) {
+    vscode.window.showErrorMessage(
+      'This extension only works with the Kubernetes documentation repository (kubernetes/website). ' +
+      'Please open the kubernetes/website repository to use review mode.'
+    );
     return;
   }
 

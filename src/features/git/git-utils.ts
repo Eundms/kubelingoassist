@@ -14,11 +14,32 @@ export class GitUtils {
     private workspaceRoot: string;
 
     constructor() {
-        const workspace = vscode.workspace.workspaceFolders?.[0];
-        if (!workspace) {
+        this.workspaceRoot = this.findGitRepository();
+    }
+
+    private findGitRepository(): string {
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (!workspaceFolders || workspaceFolders.length === 0) {
             throw new Error('No workspace folder found');
         }
-        this.workspaceRoot = workspace.uri.fsPath;
+
+        // Try each workspace folder to find one with a git repository
+        for (const workspace of workspaceFolders) {
+            try {
+                cp.execSync('git status', { 
+                    cwd: workspace.uri.fsPath, 
+                    stdio: 'ignore' 
+                });
+                return workspace.uri.fsPath;
+            } catch (error) {
+                // Continue to next workspace folder
+                continue;
+            }
+        }
+
+        // If no git repository found, fall back to first workspace folder
+        // and let the git commands fail with proper error messages
+        return workspaceFolders[0].uri.fsPath;
     }
 
     async getRecentCommit(): Promise<CommitInfo | null> {
@@ -140,6 +161,77 @@ export class GitUtils {
             await exec('git status', { cwd: this.workspaceRoot });
             return true;
         } catch (error) {
+            return false;
+        }
+    }
+
+    async isKubernetesWebsiteRepository(): Promise<boolean> {
+        try {
+            // Method 1: Check git remote URL
+            const { stdout: remoteUrl } = await exec('git remote get-url origin', { 
+                cwd: this.workspaceRoot 
+            });
+            
+            if (remoteUrl.includes('kubernetes/website')) {
+                return true;
+            }
+
+            // Method 2: Check for distinctive files
+            const fs = require('fs').promises;
+            const distinctiveFiles = [
+                'hugo.toml',
+                'netlify.toml',
+                'api-ref-assets',
+                'update-imported-docs'
+            ];
+
+            for (const file of distinctiveFiles) {
+                try {
+                    await fs.access(path.join(this.workspaceRoot, file));
+                    return true;
+                } catch {
+                    continue;
+                }
+            }
+
+            // Method 3: Check content directory structure
+            try {
+                const contentDir = path.join(this.workspaceRoot, 'content');
+                await fs.access(contentDir);
+                
+                // Check for multiple language directories
+                const contentItems = await fs.readdir(contentDir);
+                const langDirs = contentItems.filter((item: string) => 
+                    item.length === 2 || item === 'en' || item === 'zh-cn' || item === 'pt-br'
+                );
+                
+                if (langDirs.length >= 2) {
+                    return true;
+                }
+            } catch {
+                // Continue to next check
+            }
+
+            // Method 4: Check package.json for kubernetes-related dependencies
+            try {
+                const packageJsonPath = path.join(this.workspaceRoot, 'package.json');
+                const packageJson = JSON.parse(await fs.readFile(packageJsonPath, 'utf8'));
+                
+                if (packageJson.name && packageJson.name.includes('kubernetes')) {
+                    return true;
+                }
+                
+                const dependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+                if (dependencies['@docsy/hugo-base'] || dependencies['hugo-extended']) {
+                    return true;
+                }
+            } catch {
+                // Continue
+            }
+
+            return false;
+        } catch (error) {
+            console.error('Error checking if repository is kubernetes/website:', error);
             return false;
         }
     }
