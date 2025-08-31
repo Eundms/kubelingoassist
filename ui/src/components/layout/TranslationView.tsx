@@ -1,39 +1,51 @@
 import React, { useState, useEffect } from 'react';
-import { useVSCodeAPI } from '../../hooks/useVSCodeAPI';
-import { ControlSection } from './ControlSection';
+import { useTranslationVSCodeAPI } from '../../hooks/useVSCodeAPI';
+import { TranslationControlSection } from './TranslationControlSection';
 import { AIChatSection } from './AIChatSection';
+import { KubelingoMode, KUBELINGO_MODES } from '../../types/modes';
 
-interface AppState {
-  syncScrollEnabled: boolean;
+interface TranslationAppState {
+  isSyncScrollEnabled: boolean;
+  isKubelingoEnabled: boolean;
+  currentMode: KubelingoMode;
 }
 
 export const TranslationView: React.FC = () => {
   const {
-    openTranslation,
-    toggleSyncScroll,
-    sendAIMessage,
+    openTranslationFile: handleOpenTranslation,
+    openReviewFile: handleOpenReviewFile,
+    toggleSyncScroll: handleToggleSyncScroll,
+    sendAIMessage: handleSendAIMessage,
+    toggleKubelingo: handleToggleKubelingo,
+    changeMode: handleChangeMode,
     initialState,
     vscodeGetState,
     vscodeSetState,
-  } = useVSCodeAPI();
+  } = useTranslationVSCodeAPI();
 
-  const [appState, setAppState] = useState<AppState>({
-    syncScrollEnabled: false,
+  const [translationAppState, setTranslationAppState] = useState<TranslationAppState>({
+    isSyncScrollEnabled: false,
+    isKubelingoEnabled: true,
+    currentMode: KUBELINGO_MODES.TRANSLATION,
   });
 
   useEffect(() => {
     // 1) 웹뷰 로컬(getState) 우선 복원
-    const saved = vscodeGetState?.();
-    if (saved) {
-      setAppState(prev => ({
-        ...prev,
-        syncScrollEnabled: typeof saved.syncScrollEnabled === 'boolean' ? saved.syncScrollEnabled : prev.syncScrollEnabled,
+    const savedState = vscodeGetState?.();
+    if (savedState) {
+      setTranslationAppState(previousState => ({
+        ...previousState,
+        isSyncScrollEnabled: typeof savedState.syncScrollEnabled === 'boolean' ? savedState.syncScrollEnabled : previousState.isSyncScrollEnabled,
+        isKubelingoEnabled: typeof savedState.kubelingoEnabled === 'boolean' ? savedState.kubelingoEnabled : previousState.isKubelingoEnabled,
+        currentMode: savedState.mode && Object.values(KUBELINGO_MODES).includes(savedState.mode) ? savedState.mode : previousState.currentMode,
       }));
     } else if (initialState) {
       // 2) 확장에서 주입한 초기 상태
-      setAppState(prev => ({
-        ...prev,
-        syncScrollEnabled: typeof initialState.syncScrollEnabled === 'boolean' ? initialState.syncScrollEnabled : prev.syncScrollEnabled,
+      setTranslationAppState(previousState => ({
+        ...previousState,
+        isSyncScrollEnabled: typeof initialState.syncScrollEnabled === 'boolean' ? initialState.syncScrollEnabled : previousState.isSyncScrollEnabled,
+        isKubelingoEnabled: typeof initialState.kubelingoEnabled === 'boolean' ? initialState.kubelingoEnabled : previousState.isKubelingoEnabled,
+        currentMode: initialState.mode && Object.values(KUBELINGO_MODES).includes(initialState.mode) ? initialState.mode : previousState.currentMode,
       }));
     }
 
@@ -41,15 +53,17 @@ export const TranslationView: React.FC = () => {
     const messageListener = (event: MessageEvent) => {
       const message = event.data;
       if (message?.type === 'stateUpdate' && message?.payload) {
-        const { syncScrollEnabled: nextSync } = message.payload;
+        const { syncScrollEnabled: nextSyncEnabled, kubelingoEnabled: nextKubelingoEnabled, mode: nextMode } = message.payload;
         
-        setAppState(prev => {
-          const newState = { ...prev };
-          if (typeof nextSync === 'boolean') newState.syncScrollEnabled = nextSync;
+        setTranslationAppState(previousState => {
+          const updatedState = { ...previousState };
+          if (typeof nextSyncEnabled === 'boolean') updatedState.isSyncScrollEnabled = nextSyncEnabled;
+          if (typeof nextKubelingoEnabled === 'boolean') updatedState.isKubelingoEnabled = nextKubelingoEnabled;
+          if (nextMode && Object.values(KUBELINGO_MODES).includes(nextMode)) updatedState.currentMode = nextMode;
           
           // 수신 즉시 웹뷰 로컬에도 저장
-          vscodeSetState?.(newState);
-          return newState;
+          vscodeSetState?.(updatedState);
+          return updatedState;
         });
       }
     };
@@ -61,26 +75,47 @@ export const TranslationView: React.FC = () => {
 
   // 로컬 state가 바뀔 때(초기화 포함) 웹뷰 로컬 스토리지에도 저장
   useEffect(() => {
-    vscodeSetState?.(appState);
-  }, [appState, vscodeSetState]);
+    vscodeSetState?.(translationAppState);
+  }, [translationAppState, vscodeSetState]);
 
-  const handleToggleSyncScroll = () => {
+  const onToggleSyncScroll = () => {
     // 실제 토글은 확장에서 수행 → stateUpdate 수신 후 위에서 반영
-    toggleSyncScroll();
+    handleToggleSyncScroll();
   };
 
-  const handleAIMessage = (message: string) => {
-    sendAIMessage(message);
+  const onSendAIMessage = (message: string) => {
+    handleSendAIMessage(message);
   };
+
+  const onToggleKubelingo = () => {
+    console.log('onToggleKubelingo called');
+    // Send command to extension to toggle kubelingo
+    console.log('Sending toggleKubelingo message to extension');
+    handleToggleKubelingo();
+  };
+
+  const onModeChange = (newMode: KubelingoMode) => {
+    // Send command to extension to change mode
+    handleChangeMode(newMode);
+  };
+
 
   return (
     <div>
-      <ControlSection
-        syncScrollEnabled={appState.syncScrollEnabled}
-        onOpenTranslation={openTranslation}
-        onToggleSyncScroll={handleToggleSyncScroll}
+      <TranslationControlSection
+        isSyncScrollEnabled={translationAppState.isSyncScrollEnabled}
+        isKubelingoEnabled={translationAppState.isKubelingoEnabled}
+        currentMode={translationAppState.currentMode}
+        onOpenTranslationFile={handleOpenTranslation}
+        onOpenReviewFile={handleOpenReviewFile}
+        onToggleSyncScroll={onToggleSyncScroll}
+        onToggleKubelingo={onToggleKubelingo}
+        onModeChange={onModeChange}
       />
-      <AIChatSection onSendMessage={handleAIMessage} />
+      {translationAppState.isKubelingoEnabled &&
+      <AIChatSection onSendMessage={onSendAIMessage} />
+      }
+      
     </div>
   );
 };

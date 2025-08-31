@@ -1,3 +1,3 @@
 export { TranslationView } from './TranslationView';
-export { ControlSection } from './ControlSection';
+export { TranslationControlSection } from './TranslationControlSection';
 export { AIChatSection } from './AIChatSection';
