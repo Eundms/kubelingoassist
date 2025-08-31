@@ -3,15 +3,19 @@ import React from 'react';
 interface ControlButtonProps {
   onClick: () => void;
   children: React.ReactNode;
-  variant?: 'primary' | 'secondary' | 'sync-enabled';
+  variant?: 'primary' | 'secondary' | 'sync-enabled' | 'review-enabled';
   className?: string;
+  style?: React.CSSProperties;
+  disabled?: boolean;
 }
 
 export const ControlButton: React.FC<ControlButtonProps> = ({ 
   onClick, 
   children, 
   variant = 'secondary',
-  className = ''
+  className = '',
+  style,
+  disabled = false
 }) => {
   const getVariantClass = () => {
     switch (variant) {
@@ -19,6 +23,8 @@ export const ControlButton: React.FC<ControlButtonProps> = ({
         return 'primary-button';
       case 'sync-enabled':
         return 'sync-enabled';
+      case 'review-enabled':
+        return 'review-enabled';
       default:
         return 'secondary-button';
     }
@@ -28,6 +34,8 @@ export const ControlButton: React.FC<ControlButtonProps> = ({
     <button
       className={`control-button ${getVariantClass()} ${className}`}
       onClick={onClick}
+      style={style}
+      disabled={disabled}
     >
       {children}
     </button>

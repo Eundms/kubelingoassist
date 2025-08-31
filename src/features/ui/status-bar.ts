@@ -1,6 +1,6 @@
 // src/status-bar.ts
 import * as vscode from 'vscode';
-import { extractLanguageCode, compareLineCounts } from './translation-utils';
+import { extractLanguageCode, compareLineCounts } from '../translation/translation-utils';
 
 export class StatusBarManager {
   private languageStatusBarItem: vscode.StatusBarItem;
@@ -8,7 +8,7 @@ export class StatusBarManager {
   constructor() {
     // 번역 파일 열기 버튼
     this.languageStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
-    this.languageStatusBarItem.command = 'kubelingoassist.openTranslation';
+    this.languageStatusBarItem.command = 'kubelingoassist.openTranslationFile';
     this.languageStatusBarItem.text = '$(globe) 번역파일';
     this.languageStatusBarItem.tooltip = '번역 파일 열기';
     this.languageStatusBarItem.show();
