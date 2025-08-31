@@ -2,61 +2,156 @@
   "name": "kubelingoassist",
   "displayName": "KubeLingoAssist",
   "description": "쿠버네티스 문서 번역을 위한 Split View와 Synchronized Scroll 지원",
-  "version": "0.0.1",
-  "repository": { "type": "git", "url": "https://github.com/eundms/k8s-translation-helper.git" },
-  "engines": { "vscode": "^1.75.0" },
-  "categories": ["Other"],
-  "main": "./out/extension.js",
+  "version": "0.0.3",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/eundms/kubelingoassist.git"
+  },
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/core/extension.js",
   "activationEvents": [
     "onView:kubelingoassist-view",
-    "onCommand:kubelingoassist.openTranslation",
-    "onCommand:kubelingoassist.toggleSyncScroll"
+    "onCommand:kubelingoassist.openTranslationFile",
+    "onCommand:kubelingoassist.openReviewFile",
+    "onCommand:kubelingoassist.toggleSyncScroll",
+    "onCommand:kubelingoassist.toggleKubelingo",
+    "onCommand:kubelingoassist.changeMode"
   ],
   "contributes": {
     "viewsContainers": {
       "activitybar": [
-        { "id": "kubelingoassist", "title": "KubeLingoAssist", "icon": "./kubelingoassist-icon.svg" }
+        {
+          "id": "kubelingoassist",
+          "title": "KubeLingoAssist",
+          "icon": "./kubelingoassist-icon.svg"
+        }
       ]
     },
     "views": {
       "kubelingoassist": [
-        { "id": "kubelingoassist-view", "name": "Translation Helper", "type": "webview" }
+        {
+          "id": "kubelingoassist-view",
+          "name": "Translation Helper",
+          "type": "webview"
+        }
       ]
     },
     "commands": [
-      { "command": "kubelingoassist.openTranslation", "title": "번역 파일 열기" },
-      { "command": "kubelingoassist.toggleSyncScroll", "title": "스크롤 동기화 토글" }
-    ],
-    "keybindings": [
       {
-        "command": "kubelingoassist.openTranslation",
-        "key": "ctrl+shift+t",
-        "mac": "cmd+shift+t",
-        "when": "editorTextFocus || view == kubelingoassist-view"
+        "command": "kubelingoassist.openTranslationFile",
+        "title": "번역 파일 열기"
+      },
+      {
+        "command": "kubelingoassist.openReviewFile",
+        "title": "리뷰 파일 열기"
       },
       {
         "command": "kubelingoassist.toggleSyncScroll",
-        "key": "ctrl+shift+s",
-        "mac": "cmd+shift+s",
-        "when": "editorTextFocus || view == kubelingoassist-view"
+        "title": "스크롤 동기화 토글"
+      },
+      {
+        "command": "kubelingoassist.toggleKubelingo",
+        "title": "KubelingoAssist 토글"
+      },
+      {
+        "command": "kubelingoassist.changeMode",
+        "title": "모드 변경"
+      },
+      {
+        "command": "kubelingoassist.configureAI",
+        "title": "AI 설정 구성"
+      },
+      {
+        "command": "kubelingoassist.showAPIKeyStatus",
+        "title": "API 키 상태 확인"
+      },
+      {
+        "command": "kubelingoassist.translateSelected",
+        "title": "선택한 텍스트 번역"
+      }
+    ],
+    "configuration": {
+      "title": "KubeLingoAssist",
+      "properties": {
+        "kubelingoassist.ai.provider": {
+          "type": "string",
+          "enum": [
+            "openai",
+            "claude",
+            "gemini"
+          ],
+          "default": "openai",
+          "description": "AI provider for translation"
+        },
+        "kubelingoassist.ai.model": {
+          "type": "string",
+          "description": "AI model to use for translation (e.g., gpt-4, claude-3-sonnet-20240229, gemini-pro)"
+        },
+        "kubelingoassist.ai.baseUrl": {
+          "type": "string",
+          "description": "Custom base URL for AI API (optional)"
+        },
+        "kubelingoassist.ai.maxTokens": {
+          "type": "number",
+          "default": 2000,
+          "description": "Maximum tokens for AI response"
+        },
+        "kubelingoassist.ai.temperature": {
+          "type": "number",
+          "default": 0.7,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Temperature for AI response (0-2)"
+        }
+      }
+    },
+    "keybindings": [
+      {
+        "command": "kubelingoassist.openTranslationFile",
+        "key": "alt+shift+t",
+        "mac": "cmd+shift+t",
+        "when": "editorTextFocus "
+      },
+      {
+        "command": "kubelingoassist.toggleSyncScroll",
+        "key": "alt+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorTextFocus "
+      },
+      {
+        "command": "kubelingoassist.openReviewFile",
+        "key": "alt+shift+r",
+        "mac": "cmd+shift+r",
+        "when": "editorTextFocus "
       }
     ],
     "menus": {
       "explorer/context": [
-        { "command": "kubelingoassist.openTranslation", "when": "resourceExtname == .md" }
+        {
+          "command": "kubelingoassist.openTranslationFile",
+          "when": "resourceExtname == .md"
+        }
       ]
     }
   },
   "scripts": {
     "compile": "npm run build-ui && npx tsc -p ./",
+    "build": "npm run compile",
     "build-ui": "cd ui && npm run build",
     "test": "npm run compile && node ./out/test/runTest.js",
     "pretest": "npm run compile",
+    "vscode:prepublish": "npm run compile",
     "package": "vsce package"
   },
   "devDependencies": {
     "@types/mocha": "^10.0.10",
     "@types/node": "^16.18.126",
+    "@types/node-fetch": "^2.6.13",
     "@types/vscode": "^1.75.0",
     "@vscode/test-electron": "^2.5.2",
     "mocha": "^11.7.1",
