@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { VSCodeAPI, VSCodeMessage } from '../types/vscode';
+import { VSCodeAPI, VSCodeOutboundMessage } from '../types/vscode';
 
 // VS Code 웹뷰 전역 타입 안전 처리 (존재하지 않을 수도 있음)
 declare global {
@@ -10,65 +10,79 @@ declare global {
   }
 }
 
-export const useVSCodeAPI = () => {
-  const vscodeRef = useRef<VSCodeAPI | null>(null);
+export const useTranslationVSCodeAPI = () => {
+  const vscodeApiRef = useRef<VSCodeAPI | null>(null);
 
   // mount 시 한 번만 VS Code API 확보
   useEffect(() => {
     if (typeof acquireVsCodeApi !== 'undefined') {
-      vscodeRef.current = acquireVsCodeApi();
+      vscodeApiRef.current = acquireVsCodeApi();
     }
   }, []);
 
-  const postMessage = useCallback((message: VSCodeMessage) => {
-    vscodeRef.current?.postMessage(message);
+  const sendMessageToExtension = useCallback((message: VSCodeOutboundMessage) => {
+    vscodeApiRef.current?.postMessage(message);
   }, []);
 
   // ---- 상태 영속화 유틸 ----
-  const vscodeGetState = useCallback((): any | undefined => {
+  const getWebviewState = useCallback((): any | undefined => {
     try {
-      return vscodeRef.current?.getState?.();
+      return vscodeApiRef.current?.getState?.();
     } catch {
       return undefined;
     }
   }, []);
 
-  const vscodeSetState = useCallback((state: any) => {
+  const saveWebviewState = useCallback((state: any) => {
     try {
-      vscodeRef.current?.setState?.(state);
+      vscodeApiRef.current?.setState?.(state);
     } catch {
       /* noop */
     }
   }, []);
 
   // ---- 명령 래퍼 ----
-  const openTranslation = useCallback(() => {
-    postMessage({ type: 'openTranslation' });
-  }, [postMessage]);
+  const openTranslationFile = useCallback(() => {
+    sendMessageToExtension({ type: 'openTranslationFile' });
+  }, [sendMessageToExtension]);
+
+  const openReviewFile = useCallback(() => {
+    sendMessageToExtension({ type: 'openReviewFile' });
+  }, [sendMessageToExtension]);
 
   const toggleSyncScroll = useCallback(() => {
-    postMessage({ type: 'toggleSyncScroll' });
-  }, [postMessage]);
-
+    sendMessageToExtension({ type: 'toggleSyncScroll' });
+  }, [sendMessageToExtension]);
 
   const sendAIMessage = useCallback((message: string) => {
-    postMessage({ type: 'aiChat', payload: { message } });
-  }, [postMessage]);
+    sendMessageToExtension({ type: 'aiChat', payload: { message } });
+  }, [sendMessageToExtension]);
+
+  const toggleKubelingo = useCallback(() => {
+    sendMessageToExtension({ type: 'toggleKubelingo' });
+  }, [sendMessageToExtension]);
+
+  const changeMode = useCallback((mode: string) => {
+    sendMessageToExtension({ type: 'changeMode', mode });
+  }, [sendMessageToExtension]);
 
   return {
-    // commands
-    openTranslation,
+    // Extension command wrappers
+    openTranslationFile,
+    openReviewFile,
     toggleSyncScroll,
     sendAIMessage,
+    toggleKubelingo,
+    changeMode,
 
-    // vscode raw ref (필요 시 접근)
-    vscode: vscodeRef.current,
+    // Raw VSCode API reference (if needed)
+    vscodeApi: vscodeApiRef.current,
 
-    // persistence helpers
-    vscodeGetState,
-    vscodeSetState,
+    // Webview state persistence helpers
+    vscodeGetState: getWebviewState,
+    vscodeSetState: saveWebviewState,
 
-    // extension이 넣어주는 초기 상태(최초 로드 시 사용)
+    // Initial state injected by extension
     initialState: typeof window !== 'undefined' ? window.initialState : undefined,
   };
 };

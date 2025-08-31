@@ -1,12 +1,14 @@
 import * as vscode from 'vscode';
-import { TranslationViewProvider } from './webview-providers';
-import { StatusBarManager } from './status-bar';
-import { registerCommands, setDependencies, initStateFromStorage } from './commands';
-import { cleanupScrollListeners } from './scroll-sync';
-import { LinkValidator } from './validator/link';
+import { TranslationViewProvider } from '../features/ui/webview-providers';
+import { StatusBarManager } from '../features/ui/status-bar';
+import { registerCommands, setDependencies, initStateFromStorage } from '../features/translation/commands';
+import { cleanupScrollListeners } from '../features/translation/scroll-sync';
+import { LinkValidator } from '../validators/link';
+import { AICommands } from '../features/ai/ai-commands';
 
 let statusBarManager: StatusBarManager;
 let linkValidator: LinkValidator;
+let aiCommands: AICommands;
 
 export function activate(context: vscode.ExtensionContext) {
     // Status bar manager 초기화
@@ -14,6 +16,9 @@ export function activate(context: vscode.ExtensionContext) {
     
     // Link validator 초기화
     linkValidator = new LinkValidator();
+    
+    // AI Commands 초기화
+    aiCommands = new AICommands(context);
     
     // Activity Bar 뷰 프로바이더 등록
     const provider = new TranslationViewProvider(context.extensionUri);
@@ -26,6 +31,9 @@ export function activate(context: vscode.ExtensionContext) {
     
     // Commands 등록
     registerCommands(context);
+    
+    // AI Commands 등록
+    aiCommands.registerCommands();
     
     // 저장된 상태로 초기화 (상태바, 웹뷰 동기화)
     initStateFromStorage(context);

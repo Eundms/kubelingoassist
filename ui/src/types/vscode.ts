@@ -22,9 +22,11 @@ declare global {
 
 // 웹뷰 -> 확장 으로 보내는 메시지(아웃바운드)
 export type VSCodeOutboundMessage =
-  | { type: 'openTranslation' }
+  | { type: 'openTranslationFile' }
+  | { type: 'openReviewFile' }
   | { type: 'toggleSyncScroll' }
-  | { type: 'toggleTranslationMode' }
+  | { type: 'toggleKubelingo' }
+  | { type: 'changeMode'; mode: string }
   | { type: 'aiChat'; payload: { message: string } };
 
 // 확장 -> 웹뷰 로 들어오는 메시지(인바운드)

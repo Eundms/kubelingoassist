@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { extractLanguageCode } from '../translation-utils';
+import { extractLanguageCode } from '../features/translation/translation-utils';
 
 export class LinkValidator {
     private diagnostics: vscode.DiagnosticCollection;

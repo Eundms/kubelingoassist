@@ -9,6 +9,8 @@ export class TranslationViewProvider implements vscode.WebviewViewProvider {
   private readonly views = new Set<vscode.WebviewView>();
 
   private isSyncScrollEnabled = false;
+  private isKubelingoEnabled = false;
+  private currentMode: 'translation' | 'review' = 'translation';
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -39,15 +41,25 @@ export class TranslationViewProvider implements vscode.WebviewViewProvider {
     // 최초 1회만 HTML 주입
     webview.html = this._getHtml(webview, {
       syncScrollEnabled: this.isSyncScrollEnabled,
+      kubelingoEnabled: this.isKubelingoEnabled,
+      mode: this.currentMode,
     });
 
     // UI → 확장 브리지
-    webview.onDidReceiveMessage((msg: any) => {
+    webview.onDidReceiveMessage(async (msg: any) => {
+      console.log('Webview received message:', msg);
       switch (msg?.type) {
-        case 'openTranslation':
-          vscode.commands.executeCommand('kubelingoassist.openTranslation'); break;
+        case 'openTranslationFile':
+          vscode.commands.executeCommand('kubelingoassist.openTranslationFile'); break;
+        case 'openReviewFile':
+          vscode.commands.executeCommand('kubelingoassist.openReviewFile'); break;
         case 'toggleSyncScroll':
           vscode.commands.executeCommand('kubelingoassist.toggleSyncScroll'); break;
+        case 'toggleKubelingo':
+          console.log('Executing toggleKubelingo command');
+          vscode.commands.executeCommand('kubelingoassist.toggleKubelingo'); break;
+        case 'changeMode':
+          vscode.commands.executeCommand('kubelingoassist.changeMode', msg.mode); break;
         case 'aiChat':
           vscode.window.showInformationMessage(`AI Message: ${msg?.payload?.message ?? ''}`); break;
       }
@@ -61,14 +73,29 @@ export class TranslationViewProvider implements vscode.WebviewViewProvider {
     this.isSyncScrollEnabled = enabled;
     this._broadcast();
   }
-  public broadcastState(state: { syncScrollEnabled: boolean }) {
+
+  public setKubelingoEnabled(enabled: boolean) {
+    this.isKubelingoEnabled = enabled;
+    this._broadcast();
+  }
+
+  public setMode(mode: 'translation' | 'review') {
+    this.currentMode = mode;
+    this._broadcast();
+  }
+
+  public broadcastState(state: { syncScrollEnabled?: boolean; kubelingoEnabled?: boolean; mode?: 'translation' | 'review' }) {
     if (typeof state.syncScrollEnabled === 'boolean') this.isSyncScrollEnabled = state.syncScrollEnabled;
+    if (typeof state.kubelingoEnabled === 'boolean') this.isKubelingoEnabled = state.kubelingoEnabled;
+    if (state.mode) this.currentMode = state.mode;
     this._broadcast();
   }
 
   private _broadcast() {
     const payload = {
       syncScrollEnabled: this.isSyncScrollEnabled,
+      kubelingoEnabled: this.isKubelingoEnabled,
+      mode: this.currentMode,
     };
     for (const v of this.views) {
       v.webview.postMessage({ type: 'stateUpdate', payload });

@@ -1,6 +1,6 @@
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { getTranslationPath, extractLanguageCode } from '../../translation-utils';
+import { getTranslationPath, extractLanguageCode } from '../../features/translation/translation-utils';
 
 suite('Extension Test Suite', () => {
     vscode.window.showInformationMessage('Start all tests.');
