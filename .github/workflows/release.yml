@@ -24,12 +24,11 @@ jobs:
     - name: Install dependencies
       run: npm ci
 
-    - name: Build UI
+    - name: Install UI dependencies and build
       run: |
-        cd ui
-        npm ci
-        npm run build
+        cd ui && npm ci
         cd ..
+        npm run build
 
     - name: Install vsce
       run: npm install -g vsce

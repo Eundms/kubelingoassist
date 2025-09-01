@@ -4,25 +4,67 @@ import { ConfigManager, AIConfig } from './config';
 // Global fetch for Node.js environment
 declare const fetch: any;
 
+/**
+ * AI 번역 요청을 위한 인터페이스입니다.
+ */
 export interface AITranslationRequest {
+  /** 번역할 원본 텍스트 */
   sourceText: string;
+  /** 번역 대상 언어 (예: 'Korean', 'Japanese') */
   targetLanguage: string;
+  /** 번역에 도움이 되는 추가 컨텍스트 정보 (선택사항) */
   context?: string;
 }
 
+/**
+ * AI 번역 응답을 위한 인터페이스입니다.
+ */
 export interface AITranslationResponse {
+  /** 번역된 텍스트 */
   translatedText: string;
+  /** 번역의 신뢰도 (0-1 범위, 선택사항) */
   confidence?: number;
+  /** 대안 번역 제안들 (선택사항) */
   suggestions?: string[];
 }
 
+/**
+ * 다양한 AI 제공업체를 통한 번역 서비스를 관리하는 클래스입니다.
+ * OpenAI GPT, Anthropic Claude, Google Gemini를 지원합니다.
+ */
 export class AIService {
   private configManager: ConfigManager;
 
+  /**
+   * AIService 인스턴스를 생성합니다.
+   * 
+   * @param context - VS Code 확장 프로그램 컨텍스트
+   */
   constructor(private context: vscode.ExtensionContext) {
     this.configManager = new ConfigManager(context);
   }
 
+  /**
+   * 구성된 AI 제공업체를 사용하여 텍스트를 번역합니다.
+   * 설정에 따라 OpenAI, Claude, 또는 Gemini를 자동으로 선택합니다.
+   * 
+   * @param request - 번역 요청 정보
+   * @returns 번역 결과를 포함한 응답 객체
+   * 
+   * @throws API 키가 설정되지 않은 경우
+   * @throws 지원하지 않는 AI 제공업체인 경우
+   * @throws API 호출 실패시
+   * 
+   * @example
+   * ```typescript
+   * const response = await aiService.translateText({
+   *   sourceText: 'Hello, world!',
+   *   targetLanguage: 'Korean',
+   *   context: 'Kubernetes documentation greeting'
+   * });
+   * console.log(response.translatedText); // '안녕하세요, 세계!'
+   * ```
+   */
   async translateText(request: AITranslationRequest): Promise<AITranslationResponse> {
     const config = this.configManager.getAIConfig();
     const apiKey = await this.configManager.getAPIKey(config.provider);
@@ -43,6 +85,18 @@ export class AIService {
     }
   }
 
+  /**
+   * OpenAI GPT API를 사용하여 텍스트를 번역합니다.
+   * 
+   * @param request - 번역 요청 정보
+   * @param config - AI 설정 정보
+   * @param apiKey - OpenAI API 키
+   * @returns OpenAI API를 통한 번역 결과
+   * 
+   * @throws OpenAI API 호출 실패시 HTTP 에러
+   * 
+   * @private
+   */
   private async translateWithOpenAI(
     request: AITranslationRequest, 
     config: AIConfig, 
@@ -84,6 +138,18 @@ export class AIService {
     };
   }
 
+  /**
+   * Anthropic Claude API를 사용하여 텍스트를 번역합니다.
+   * 
+   * @param request - 번역 요청 정보
+   * @param config - AI 설정 정보
+   * @param apiKey - Claude API 키
+   * @returns Claude API를 통한 번역 결과
+   * 
+   * @throws Claude API 호출 실패시 HTTP 에러
+   * 
+   * @private
+   */
   private async translateWithClaude(
     request: AITranslationRequest, 
     config: AIConfig, 
@@ -121,6 +187,18 @@ ${request.context ? `Context: ${request.context}\n\n` : ''}Text to translate: ${
     };
   }
 
+  /**
+   * Google Gemini API를 사용하여 텍스트를 번역합니다.
+   * 
+   * @param request - 번역 요청 정보
+   * @param config - AI 설정 정보
+   * @param apiKey - Gemini API 키
+   * @returns Gemini API를 통한 번역 결과
+   * 
+   * @throws Gemini API 호출 실패시 HTTP 에러
+   * 
+   * @private
+   */
   private async translateWithGemini(
     request: AITranslationRequest, 
     config: AIConfig, 
@@ -164,6 +242,21 @@ ${request.context ? `Context: ${request.context}\n\n` : ''}Text to translate: ${
     };
   }
 
+  /**
+   * 모든 지원되는 AI 제공업체의 API 키 설정 상태를 확인합니다.
+   * 
+   * @returns 각 제공업체별 API 키 설정 여부를 나타내는 객체
+   * 
+   * @example
+   * ```typescript
+   * const status = await aiService.checkAPIKeyStatus();
+   * // Returns: { openai: true, claude: false, gemini: true }
+   * 
+   * if (status.openai) {
+   *   console.log('OpenAI API 키가 설정되어 있습니다.');
+   * }
+   * ```
+   */
   async checkAPIKeyStatus(): Promise<{ [provider: string]: boolean }> {
     return {
       openai: await this.configManager.hasAPIKey('openai'),

@@ -5,7 +5,7 @@ All notable changes to the "k8s-translation-helper" extension will be documented
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.0.2] - 2025-09-01
 ### Added
 - AI 채팅 인터페이스 구현 (AIChat, ChatHistory, ChatInput, ChatMessage 컴포넌트)
 - 번역 용어 참조 순서 툴팁 추가 (TranslationGuideTooltip)
@@ -24,6 +24,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `layout/`: 메인 레이아웃 컴포넌트  
   - `ui/`: 재사용 가능한 UI 컴포넌트
 - 프로젝트 구조 문서 업데이트 (README.md, FEATURES.md)
+
+## [0.0.3] - 2025-09-01
+
+### Added
+- 포괄적인 JSDoc 문서화 추가
+
+### Fixed
+- 멀티 프로젝트 워크스페이스에서 리뷰 모드 가능하도록 수정
+- 함수 안정성 개선
+
+## [Unreleased]
 
 ## [0.0.1] - 2025-08-30
 ### Added

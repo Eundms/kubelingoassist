@@ -2,7 +2,7 @@
   "name": "kubelingoassist",
   "displayName": "KubeLingoAssist",
   "description": "쿠버네티스 문서 번역을 위한 Split View와 Synchronized Scroll 지원",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "repository": {
     "type": "git",
     "url": "https://github.com/eundms/k8s-translation-helper.git"
@@ -80,7 +80,11 @@
       "properties": {
         "kubelingoassist.ai.provider": {
           "type": "string",
-          "enum": ["openai", "claude", "gemini"],
+          "enum": [
+            "openai",
+            "claude",
+            "gemini"
+          ],
           "default": "openai",
           "description": "AI provider for translation"
         },
@@ -137,10 +141,11 @@
   },
   "scripts": {
     "compile": "npm run build-ui && npx tsc -p ./",
+    "build": "npm run compile",
     "build-ui": "cd ui && npm run build",
     "test": "npm run compile && node ./out/test/runTest.js",
     "pretest": "npm run compile",
-    "vscode:prepublish": "npm run compile", 
+    "vscode:prepublish": "npm run compile",
     "package": "vsce package"
   },
   "devDependencies": {
