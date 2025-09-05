@@ -38,9 +38,22 @@ export function activate(context: vscode.ExtensionContext) {
     // 저장된 상태로 초기화 (상태바, 웹뷰 동기화)
     initStateFromStorage(context);
     
-    // 문서 변경 시 링크 검증
+    // 문서 변경 시 링크 검증 및 라인수 업데이트
     const onDidChangeTextDocument = vscode.workspace.onDidChangeTextDocument((event) => {
         linkValidator.validateLinks(event.document);
+        
+        // 마크다운 파일 변경시 라인수 업데이트 (디바운싱 적용)
+        if (event.document.languageId === 'markdown') {
+            statusBarManager.debouncedRefreshLineCount();
+        }
+    });
+    
+    // 문서 저장 시 라인수 업데이트
+    const onDidSaveTextDocument = vscode.workspace.onDidSaveTextDocument(async (document) => {
+        // 마크다운 파일인 경우에만 라인수 업데이트
+        if (document.languageId === 'markdown') {
+            await statusBarManager.refreshLineCount();
+        }
     });
     
     // 문서 열기 시 링크 검증
@@ -53,6 +66,7 @@ export function activate(context: vscode.ExtensionContext) {
         linkValidator.getDiagnostics(),
         linkValidator.getCodeActionProvider(),
         onDidChangeTextDocument,
+        onDidSaveTextDocument,
         onDidOpenTextDocument
     );
 }
