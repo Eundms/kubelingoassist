@@ -3,6 +3,37 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { extractLanguageCode } from '../features/translation/translation-utils';
 
+interface LinkInfo {
+    text: string;
+    path: string;
+    fullMatch: string;
+    range: vscode.Range;
+}
+
+interface ValidationResult {
+    translationExists: boolean;
+    expectedPath: string | null;
+    isFolder: boolean;
+}
+
+const CONSTANTS = {
+    DIAGNOSTICS_COLLECTION_NAME: 'kubelingoassist-links',
+    DIAGNOSTIC_SOURCE: 'KubeLingoAssist',
+    DIAGNOSTIC_CODE: 'missing-language-path',
+    LINK_REGEX: /\[([^\]]*)\]\(\/docs\/([^)]*)\)/g,
+    LANGUAGE_CODE_REGEX: /^[a-z]{2}\/|^en\//,
+    TRANSLATION_FILE_PATTERN: /\/content\/([^\/]+)\/docs\//,
+    EXCLUDED_LANGUAGE: 'en'
+} as const;
+
+const MESSAGES = {
+    WARNING_TEMPLATE: (resourceType: string, linkText: string, currentPath: string, suggestedPath: string) =>
+        `⚠️ 번역 ${resourceType}이 존재하는데 언어 경로가 누락되었습니다.\n` +
+        `현재: [${linkText}](/docs/${currentPath})\n` +
+        `권장: [${linkText}](${suggestedPath})`,
+    CODE_ACTION_TITLE: (language: string) => `언어 경로 추가: /${language}/docs/...`
+} as const;
+
 export class LinkValidator {
     private diagnostics: vscode.DiagnosticCollection;
     private codeActionProvider: LinkCodeActionProvider;
@@ -13,7 +44,6 @@ export class LinkValidator {
     }
 
     public validateLinks(document: vscode.TextDocument): number {
-        // 번역 파일만 체크 (en 제외)
         if (!this.isTranslationFile(document.uri.fsPath)) {
             this.diagnostics.delete(document.uri);
             return 0;
@@ -23,7 +53,6 @@ export class LinkValidator {
         const diagnostics: vscode.Diagnostic[] = [];
         const text = document.getText();
 
-        // [텍스트](/docs/**) 패턴 찾기 (언어 코드가 없는 링크만)
         const linkRegex = /\[([^\]]*)\]\(\/docs\/([^)]*)\)/g;
         let match;
 
@@ -32,21 +61,29 @@ export class LinkValidator {
             const linkPath = match[2];
             const fullMatch = match[0];
             
-            // 이미 언어 코드가 있는 링크는 무시
             if (linkPath.match(/^[a-z]{2}\//) || linkPath.match(/^en\//)) {
                 continue;
             }
             
-            // 링크 위치 계산
             const startPos = document.positionAt(match.index);
             const endPos = document.positionAt(match.index + fullMatch.length);
             const range = new vscode.Range(startPos, endPos);
 
-            // 실제 번역 파일 존재 여부 확인
             const expectedTranslationPath = this.getExpectedTranslationPath(document.uri.fsPath, linkPath, currentLanguage);
-            const translationExists = expectedTranslationPath ? this.fileExists(expectedTranslationPath) : false;
+            let translationExists = false;
+            
+            if (expectedTranslationPath) {
+                if (linkPath.endsWith('/')) {
+                    const folderExists = this.fileExists(expectedTranslationPath);
+                    const fileName = path.basename(linkPath.replace(/\/$/, '')) + '.md';
+                    const filePath = path.join(path.dirname(expectedTranslationPath), fileName);
+                    const fileExists = this.fileExists(filePath);
+                    translationExists = folderExists || fileExists;
+                } else {
+                    translationExists = this.fileExists(expectedTranslationPath);
+                }
+            }
 
-            // 번역 파일이 있는 경우만 경고
             if (translationExists) {
                 const isFolder = linkPath.endsWith('/');
                 const resourceType = isFolder ? '폴더' : '파일';
@@ -61,15 +98,66 @@ export class LinkValidator {
             }
         }
 
-        // 진단 정보 설정
         this.diagnostics.set(document.uri, diagnostics);
         return diagnostics.length;
     }
 
     private isTranslationFile(filePath: string): boolean {
-        // /content/{language}/docs/ 패턴이면서 en이 아니면서 기존 번역 파일이 존재하는 경우
-        const match = filePath.match(/\/content\/([^/]+)\/docs\//);
-        return match !== null && match[1] !== 'en' && this.existsTranslationFile(filePath);
+        const match = filePath.match(CONSTANTS.TRANSLATION_FILE_PATTERN);
+        return match !== null && match[1] !== CONSTANTS.EXCLUDED_LANGUAGE;
+    }
+
+    private extractLinks(document: vscode.TextDocument): LinkInfo[] {
+        const text = document.getText();
+        const links: LinkInfo[] = [];
+        const regex = new RegExp(CONSTANTS.LINK_REGEX.source, 'g');
+        let match;
+
+        while ((match = regex.exec(text)) !== null) {
+            const linkText = match[1];
+            const linkPath = match[2];
+            const fullMatch = match[0];
+            const startPos = document.positionAt(match.index!);
+            const endPos = document.positionAt(match.index! + fullMatch.length);
+            const range = new vscode.Range(startPos, endPos);
+
+            links.push({
+                text: linkText,
+                path: linkPath,
+                fullMatch,
+                range
+            });
+        }
+
+        return links;
+    }
+
+    private shouldSkipLink(linkPath: string): boolean {
+        return CONSTANTS.LANGUAGE_CODE_REGEX.test(linkPath);
+    }
+
+    private validateLink(currentFilePath: string, linkPath: string, currentLanguage: string): ValidationResult {
+        const expectedTranslationPath = this.getExpectedTranslationPath(currentFilePath, linkPath, currentLanguage);
+        const translationExists = expectedTranslationPath ? this.fileExists(expectedTranslationPath) : false;
+        const isFolder = linkPath.endsWith('/');
+
+        return {
+            translationExists,
+            expectedPath: expectedTranslationPath,
+            isFolder
+        };
+    }
+
+    private createDiagnostic(linkInfo: LinkInfo, validationResult: ValidationResult, currentLanguage: string): vscode.Diagnostic {
+        const resourceType = validationResult.isFolder ? '폴더' : '파일';
+        const suggestedPath = `/${currentLanguage.toLowerCase()}/docs/${linkInfo.path}`;
+        const message = MESSAGES.WARNING_TEMPLATE(resourceType, linkInfo.text, linkInfo.path, suggestedPath);
+        
+        const diagnostic = new vscode.Diagnostic(linkInfo.range, message, vscode.DiagnosticSeverity.Warning);
+        diagnostic.source = CONSTANTS.DIAGNOSTIC_SOURCE;
+        diagnostic.code = CONSTANTS.DIAGNOSTIC_CODE;
+        
+        return diagnostic;
     }
 
     public dispose() {
@@ -85,48 +173,30 @@ export class LinkValidator {
         return this.codeActionProvider;
     }
 
-    private existsTranslationFile(filePath: string): boolean {
-        if (!fs.existsSync(filePath)) {
-            return false;
-        }
-        
-        const stats = fs.statSync(filePath);
-        
-        // 파일을 가리키는 경우 -> 파일 자체가 있는지 확인
-        if (stats.isFile()) {
-            return true;
-        }
-        
-        // 디렉토리를 가리키는 경우 -> 디렉토리가 있는지 확인  
-        if (stats.isDirectory()) {
-            return true;
-        }
-        
-        return false;
-    }
 
     private getExpectedTranslationPath(currentFilePath: string, linkPath: string, language: string): string | null {
-        // 현재 파일의 프로젝트 루트 찾기
-        const contentMatch = currentFilePath.match(/(.*\/content)\//);
-        if (!contentMatch) {
+        try {
+            const contentMatch = currentFilePath.match(/(.*\/content)\/[^/]+\/docs\//);
+            if (!contentMatch) {
+                return null;
+            }
+
+            const contentRoot = contentMatch[1];
+            let expectedPath = path.join(contentRoot, language.toLowerCase(), 'docs', linkPath);
+            
+            if (linkPath.endsWith('/')) {
+                return expectedPath;
+            }
+            
+            if (!expectedPath.endsWith('.md')) {
+                expectedPath += '.md';
+            }
+            
+            return expectedPath;
+        } catch (error) {
+            console.warn('Failed to generate expected translation path:', error);
             return null;
         }
-
-        const contentRoot = contentMatch[1];
-        // /docs/concepts/overview.md -> /content/{lang}/docs/concepts/overview.md
-        let expectedPath = path.join(contentRoot, language.toLowerCase(), 'docs', linkPath);
-        
-        // 폴더 링크인 경우 (/ 로 끝남)
-        if (linkPath.endsWith('/')) {
-            return expectedPath;
-        }
-        
-        // 파일 링크인 경우 - .md 확장자가 없다면 추가
-        if (!expectedPath.endsWith('.md')) {
-            expectedPath += '.md';
-        }
-        
-        return expectedPath;
     }
 
     private fileExists(filePath: string): boolean {
@@ -137,14 +207,13 @@ export class LinkValidator {
             
             const stats = fs.statSync(filePath);
             
-            // 폴더 링크인 경우 (경로가 / 로 끝남)
             if (filePath.endsWith('/')) {
                 return stats.isDirectory();
             }
             
-            // 파일 링크인 경우
             return stats.isFile();
-        } catch {
+        } catch (error) {
+            console.warn(`Failed to check file existence for ${filePath}:`, error);
             return false;
         }
     }
@@ -164,16 +233,12 @@ export class LinkCodeActionProvider implements vscode.CodeActionProvider {
 
     provideCodeActions(
         document: vscode.TextDocument,
-        range: vscode.Range | vscode.Selection,
+        _range: vscode.Range | vscode.Selection,
         context: vscode.CodeActionContext,
-        token: vscode.CancellationToken
+        _token: vscode.CancellationToken
     ): vscode.CodeAction[] {
+        const linkDiagnostics = this.filterLinkDiagnostics(context.diagnostics);
         const codeActions: vscode.CodeAction[] = [];
-
-        // Check if any of the diagnostics are from our link validator
-        const linkDiagnostics = context.diagnostics.filter(
-            d => d.source === 'KubeLingoAssist' && d.code === 'missing-language-path'
-        );
 
         for (const diagnostic of linkDiagnostics) {
             const action = this.createFixLanguagePathAction(document, diagnostic);
@@ -185,42 +250,48 @@ export class LinkCodeActionProvider implements vscode.CodeActionProvider {
         return codeActions;
     }
 
+    private filterLinkDiagnostics(diagnostics: readonly vscode.Diagnostic[]): vscode.Diagnostic[] {
+        return diagnostics.filter(
+            d => d.source === CONSTANTS.DIAGNOSTIC_SOURCE && d.code === CONSTANTS.DIAGNOSTIC_CODE
+        );
+    }
+
     private createFixLanguagePathAction(
         document: vscode.TextDocument,
         diagnostic: vscode.Diagnostic
     ): vscode.CodeAction | undefined {
-        // Extract the link information from the diagnostic range
-        const text = document.getText(diagnostic.range);
-        const linkRegex = /\[([^\]]*)\]\(\/docs\/([^)]*)\)/;
-        const match = text.match(linkRegex);
+        try {
+            const text = document.getText(diagnostic.range);
+            const regex = new RegExp(CONSTANTS.LINK_REGEX.source);
+            const match = text.match(regex);
 
-        if (!match) {
+            if (!match || match.length < 3) {
+                return undefined;
+            }
+
+            const linkText = match[1];
+            const linkPath = match[2];
+            const currentLanguage = extractLanguageCode(document.uri.fsPath);
+
+            if (currentLanguage === 'unknown') {
+                return undefined;
+            }
+
+            const suggestedPath = `/${currentLanguage.toLowerCase()}/docs/${linkPath}`;
+            const newLinkText = `[${linkText}](${suggestedPath})`;
+            const title = MESSAGES.CODE_ACTION_TITLE(currentLanguage);
+
+            const action = new vscode.CodeAction(title, vscode.CodeActionKind.QuickFix);
+            action.edit = new vscode.WorkspaceEdit();
+            action.edit.replace(document.uri, diagnostic.range, newLinkText);
+            action.diagnostics = [diagnostic];
+            action.isPreferred = true;
+
+            return action;
+        } catch (error) {
+            console.warn('Failed to create fix language path action:', error);
             return undefined;
         }
-
-        const linkText = match[1];
-        const linkPath = match[2];
-        const currentLanguage = extractLanguageCode(document.uri.fsPath);
-
-        if (currentLanguage === 'unknown') {
-            return undefined;
-        }
-
-        const suggestedPath = `/${currentLanguage.toLowerCase()}/docs/${linkPath}`;
-        const newLinkText = `[${linkText}](${suggestedPath})`;
-
-        const action = new vscode.CodeAction(
-            `언어 경로 추가: /${currentLanguage}/docs/...`,
-            vscode.CodeActionKind.QuickFix
-        );
-
-        action.edit = new vscode.WorkspaceEdit();
-        action.edit.replace(document.uri, diagnostic.range, newLinkText);
-
-        action.diagnostics = [diagnostic];
-        action.isPreferred = true;
-
-        return action;
     }
 
     dispose() {
