@@ -4,6 +4,9 @@ import { extractLanguageCode, compareLineCounts } from '../translation/translati
 
 export class StatusBarManager {
   private languageStatusBarItem: vscode.StatusBarItem;
+  private currentOriginalPath?: string;
+  private currentTranslationPath?: string;
+  private updateTimeout?: NodeJS.Timeout;
 
   constructor() {
     // 번역 파일 열기 버튼
@@ -16,6 +19,10 @@ export class StatusBarManager {
 
   public async updateAllStatusBarItems(originalPath?: string, translationPath?: string) {
     if (originalPath && translationPath) {
+      // 현재 파일 경로 저장
+      this.currentOriginalPath = originalPath;
+      this.currentTranslationPath = translationPath;
+
       const sourceLanguage = extractLanguageCode(originalPath);
       const targetLanguage = extractLanguageCode(translationPath);
 
@@ -37,8 +44,33 @@ export class StatusBarManager {
     }
   }
 
+  /**
+   * 현재 열려있는 파일들의 라인수를 자동으로 업데이트
+   */
+  public async refreshLineCount() {
+    if (this.currentOriginalPath && this.currentTranslationPath) {
+      await this.updateAllStatusBarItems(this.currentOriginalPath, this.currentTranslationPath);
+    }
+  }
+
+  /**
+   * 디바운싱을 적용한 라인수 업데이트 (문서 변경시 너무 자주 호출되는 것을 방지)
+   */
+  public debouncedRefreshLineCount(delay: number = 1000) {
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+    }
+    
+    this.updateTimeout = setTimeout(async () => {
+      await this.refreshLineCount();
+    }, delay);
+  }
+
 
   public dispose() {
+    if (this.updateTimeout) {
+      clearTimeout(this.updateTimeout);
+    }
     this.languageStatusBarItem.dispose();
   }
 

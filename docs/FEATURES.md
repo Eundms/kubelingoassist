@@ -4,7 +4,7 @@
 
 ### 1. 번역 파일 자동 열기
 - **설명**: 영어 원본 파일에서 해당하는 번역 파일을 Split View로 자동 열기
-- **트리거**: "번역 파일 열기" 버튼 또는 `kubelingoassist.openTranslation` 명령
+- **트리거**: "번역 파일 열기" 버튼 또는 `kubelingoassist.openTranslationFile` 명령
 - **지원 경로**: `/content/en/**` → `/content/{language}/**` (모든 콘텐츠 타입 지원)
 - **지원 콘텐츠**: docs, blog, case-studies, tutorials 등 모든 하위 디렉토리
 - **다중 언어**: 15개 언어 지원 (ko, ja, zh-cn, zh, fr, de, es, it, pt-br, ru, uk, pl, hi, vi, id)
