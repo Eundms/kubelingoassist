@@ -1,3 +1,3 @@
-export * from './commands';
-export * from './translation-utils';
-export * from './scroll-sync';
+export * from './CommandManager';
+export * from './managers';
+export * from './ScrollSyncManager';

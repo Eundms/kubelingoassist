@@ -1,1 +1,1 @@
-export * from './git-utils';
+export * from './GitUtils';

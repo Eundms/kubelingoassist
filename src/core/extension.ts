@@ -1,14 +1,15 @@
 import * as vscode from 'vscode';
 import { TranslationViewProvider } from '../features/ui/webview-providers';
 import { StatusBarManager } from '../features/ui/status-bar';
-import { registerCommands, setDependencies, initStateFromStorage } from '../features/translation/commands';
-import { cleanupScrollListeners } from '../features/translation/scroll-sync';
+import { CommandManager } from '../features/translation/CommandManager';
+import { cleanupScrollListeners } from '../features/translation/ScrollSyncManager';
 import { LinkValidator } from '../validators/link';
-import { AICommands } from '../features/ai/ai-commands';
+// import { AIManagerFactory } from '../features/ai';
 
 let statusBarManager: StatusBarManager;
 let linkValidator: LinkValidator;
-let aiCommands: AICommands;
+let aiCommandManager: any;
+let commandManager: CommandManager;
 
 export function activate(context: vscode.ExtensionContext) {
     // Status bar manager 초기화
@@ -17,8 +18,8 @@ export function activate(context: vscode.ExtensionContext) {
     // Link validator 초기화
     linkValidator = new LinkValidator();
     
-    // AI Commands 초기화
-    aiCommands = new AICommands(context);
+    // AI Command Manager 초기화
+    // aiCommandManager = AIManagerFactory.getCommandManager(context);
     
     // Activity Bar 뷰 프로바이더 등록
     const provider = new TranslationViewProvider(context.extensionUri);
@@ -26,17 +27,13 @@ export function activate(context: vscode.ExtensionContext) {
         vscode.window.registerWebviewViewProvider('kubelingoassist-view', provider)
     );
     
-    // Commands 모듈에 의존성 설정
-    setDependencies(statusBarManager, provider);
-    
-    // Commands 등록
-    registerCommands(context);
+    // Command Manager 초기화 및 등록
+    commandManager = new CommandManager(context, statusBarManager, provider);
+    commandManager.registerCommands();
+    commandManager.initStateFromStorage();
     
     // AI Commands 등록
-    aiCommands.registerCommands();
-    
-    // 저장된 상태로 초기화 (상태바, 웹뷰 동기화)
-    initStateFromStorage(context);
+    aiCommandManager.registerCommands();
     
     // 문서 변경 시 링크 검증
     const onDidChangeTextDocument = vscode.workspace.onDidChangeTextDocument((event) => {
@@ -64,5 +61,8 @@ export function deactivate() {
     }
     if (linkValidator) {
         linkValidator.dispose();
+    }
+    if (commandManager) {
+        // CommandManager에 dispose 메서드가 있다면 호출
     }
 }

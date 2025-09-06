@@ -3,24 +3,48 @@ import * as cp from 'child_process';
 import { promisify } from 'util';
 import { CommitInfo, CommitFile } from '../../core/types';
 import * as path from 'path';
+import { i18n } from '../../core/i18n';
 
 const exec = promisify(cp.exec);
+
+export interface IGitRepository {
+  getCurrentBranch(): Promise<string>;
+  getRecentCommit(): Promise<CommitInfo | null>;
+  getCommitInfo(commitHash?: string): Promise<CommitInfo | null>;
+  isGitRepository(): Promise<boolean>;
+  isKubernetesWebsiteRepository(): Promise<boolean>;
+}
+
+export interface GitUtilsConfig {
+  workspaceRoot?: string;
+  defaultCommitLimit?: number;
+}
+
+export class GitError extends Error {
+  constructor(message: string, public originalError?: any) {
+    super(message);
+    this.name = 'GitError';
+  }
+}
 
 export interface GitChangedFile extends CommitFile {
   absPath: string; // 리포 루트 붙인 절대경로
 }
 
-export class GitUtils {
+export class GitUtils implements IGitRepository {
     private workspaceRoot: string;
 
-    constructor() {
-        this.workspaceRoot = this.findGitRepository();
+    private config: GitUtilsConfig;
+
+    constructor(config?: GitUtilsConfig) {
+        this.config = { defaultCommitLimit: 10, ...config };
+        this.workspaceRoot = this.config.workspaceRoot || this.findGitRepository();
     }
 
     private findGitRepository(): string {
         const workspaceFolders = vscode.workspace.workspaceFolders;
         if (!workspaceFolders || workspaceFolders.length === 0) {
-            throw new Error('No workspace folder found');
+            throw new GitError('No workspace folder found');
         }
 
         // Try each workspace folder to find one with a git repository
@@ -42,11 +66,11 @@ export class GitUtils {
         return workspaceFolders[0].uri.fsPath;
     }
 
-    async getRecentCommit(): Promise<CommitInfo | null> {
+    public async getRecentCommit(): Promise<CommitInfo | null> {
         return this.getCommitInfo();
     }
 
-    async getCommitInfo(commitHash?: string): Promise<CommitInfo | null> {
+    public async getCommitInfo(commitHash?: string): Promise<CommitInfo | null> {
         try {
             const command = commitHash 
                 ? `git show --pretty=format:"%H|%s|%an|%ad" --date=short ${commitHash}`
@@ -72,12 +96,12 @@ export class GitUtils {
                 files
             };
         } catch (error) {
-            console.error(`Failed to get commit info${commitHash ? ` for ${commitHash}` : ''}:`, error);
-            return null;
+            console.error(i18n.t('git.commitInfoFailed', String(error)));
+            throw new GitError(i18n.t('git.commitInfoFailed', String(error)), error);
         }
     }
 
-    async getChangedFilesInCommit(commitHash: string): Promise<CommitFile[]> {
+    public async getChangedFilesInCommit(commitHash: string): Promise<CommitFile[]> {
         try {
             const { stdout } = await exec(`git show --name-status --pretty= ${commitHash}`, {
                 cwd: this.workspaceRoot
@@ -108,12 +132,12 @@ export class GitUtils {
 
             return files;
         } catch (error) {
-            console.error(`Failed to get changed files for commit ${commitHash}:`, error);
+            console.error(i18n.t('git.diffFailed', String(error)));
             return [];
         }
     }
 
-    async getChangedFilesSinceCommit(commitHash: string): Promise<CommitFile[]> {
+    public async getChangedFilesSinceCommit(commitHash: string): Promise<CommitFile[]> {
         try {
             const { stdout } = await exec(`git diff --name-status ${commitHash}..HEAD`, {
                 cwd: this.workspaceRoot
@@ -139,12 +163,12 @@ export class GitUtils {
 
             return files;
         } catch (error) {
-            console.error(`Failed to get changed files since commit ${commitHash}:`, error);
+            console.error(i18n.t('git.diffFailed', String(error)));
             return [];
         }
     }
 
-    async getCurrentBranch(): Promise<string> {
+    public async getCurrentBranch(): Promise<string> {
         try {
             const { stdout } = await exec('git branch --show-current', {
                 cwd: this.workspaceRoot
@@ -152,11 +176,11 @@ export class GitUtils {
             return stdout.trim();
         } catch (error) {
             console.error('Failed to get current branch:', error);
-            return 'unknown';
+            throw new GitError('Failed to get current branch', error);
         }
     }
 
-    async isGitRepository(): Promise<boolean> {
+    public async isGitRepository(): Promise<boolean> {
         try {
             await exec('git status', { cwd: this.workspaceRoot });
             return true;
@@ -165,7 +189,7 @@ export class GitUtils {
         }
     }
 
-    async isKubernetesWebsiteRepository(): Promise<boolean> {
+    public async isKubernetesWebsiteRepository(): Promise<boolean> {
         try {
             // Method 1: Check git remote URL
             const { stdout: remoteUrl } = await exec('git remote get-url origin', { 
@@ -236,9 +260,10 @@ export class GitUtils {
         }
     }
 
-    async findCommitsWithTranslationFiles(limit: number = 10): Promise<CommitInfo[]> {
+    public async findCommitsWithTranslationFiles(limit?: number): Promise<CommitInfo[]> {
+        const commitLimit = limit || this.config.defaultCommitLimit || 10;
         try {
-            const { stdout } = await exec(`git log -${limit} --pretty=format:"%H|%s|%an|%ad" --date=short`, {
+            const { stdout } = await exec(`git log -${commitLimit} --pretty=format:"%H|%s|%an|%ad" --date=short`, {
                 cwd: this.workspaceRoot
             });
 
@@ -266,12 +291,12 @@ export class GitUtils {
 
             return commits;
         } catch (error) {
-            console.error('Failed to find commits with translation files:', error);
+            console.error(i18n.t('git.commitInfoFailed', String(error)));
             return [];
         }
     }
 
-    filterTranslationFiles(files: CommitFile[]): GitChangedFile[] {
+    public filterTranslationFiles(files: CommitFile[]): GitChangedFile[] {
         const translationFiles = files.filter(file => {
             // Filter for markdown files in translation directories (not English)
             const isMarkdown = file.path.endsWith('.md');
@@ -286,12 +311,52 @@ export class GitUtils {
         return translationFiles
     }
 
-    getOriginalEnglishPath(translationPath: string): string | null {
+    public getOriginalEnglishPath(translationPath: string): string | null {
         // Convert translation path to English path
         const langMatch = translationPath.match(/content\/([^/]+)\//);
         if (langMatch && langMatch[1] !== 'en') {
             return translationPath.replace(`content/${langMatch[1]}/`, 'content/en/');
         }
         return null;
+    }
+
+    /**
+     * 리소스 해제
+     */
+    public dispose(): void {
+        // 현재는 해제할 리소스가 없지만, 향후 확장을 위해 메서드 제공
+    }
+
+    /**
+     * 작업 디렉터리 반환
+     */
+    public getWorkspaceRoot(): string {
+        return this.workspaceRoot;
+    }
+}
+
+/**
+ * GitUtils 팩토리 클래스
+ */
+export class GitUtilsFactory {
+    /**
+     * GitUtils 인스턴스 생성
+     */
+    public static create(config?: GitUtilsConfig): GitUtils {
+        return new GitUtils(config);
+    }
+
+    /**
+     * 현재 워크스페이스에서 GitUtils 인스턴스 생성
+     */
+    public static createFromWorkspace(): GitUtils {
+        return new GitUtils();
+    }
+
+    /**
+     * 특정 경로에서 GitUtils 인스턴스 생성
+     */
+    public static createFromPath(workspaceRoot: string): GitUtils {
+        return new GitUtils({ workspaceRoot });
     }
 }

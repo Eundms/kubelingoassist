@@ -1,9 +1,11 @@
 // src/status-bar.ts
 import * as vscode from 'vscode';
-import { extractLanguageCode, compareLineCounts } from '../translation/translation-utils';
+import { TranslationManagerFactory } from '../translation/managers';
 
 export class StatusBarManager {
   private languageStatusBarItem: vscode.StatusBarItem;
+  private readonly pathManager = TranslationManagerFactory.getPathManager();
+  private readonly fileManager = TranslationManagerFactory.getFileManager();
 
   constructor() {
     // 번역 파일 열기 버튼
@@ -16,10 +18,10 @@ export class StatusBarManager {
 
   public async updateAllStatusBarItems(originalPath?: string, translationPath?: string) {
     if (originalPath && translationPath) {
-      const sourceLanguage = extractLanguageCode(originalPath);
-      const targetLanguage = extractLanguageCode(translationPath);
+      const sourceLanguage = this.pathManager.extractLanguageCode(originalPath) || 'unknown';
+      const targetLanguage = this.pathManager.extractLanguageCode(translationPath) || 'unknown';
 
-      const lineComparison = await compareLineCounts(originalPath, translationPath);
+      const lineComparison = await this.fileManager.compareLineCounts(originalPath, translationPath);
       let lineInfo = '';
 
       if (lineComparison) {
