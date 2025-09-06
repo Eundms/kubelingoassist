@@ -5,6 +5,7 @@ import { setupSynchronizedScrolling, cleanupScrollListeners } from './scroll-syn
 import { StatusBarManager } from '../ui/status-bar';
 import { TranslationViewProvider } from '../ui/webview-providers';
 import { GitUtils } from '../git/git-utils';
+import { i18n } from '../i18n';
 
 const KEY_SYNC = 'syncScrollEnabled';
 const KEY_KUBELINGO = 'kubelingoEnabled';
@@ -31,7 +32,7 @@ export function setDependencies(
 export function initStateFromStorage(context: vscode.ExtensionContext) {
   ctx = context;
   isSyncScrollEnabled = ctx.workspaceState.get<boolean>(KEY_SYNC, false);
-  isKubelingoEnabled = ctx.workspaceState.get<boolean>(KEY_KUBELINGO, false);
+  isKubelingoEnabled = ctx.workspaceState.get<boolean>(KEY_KUBELINGO, true);
   currentMode = ctx.workspaceState.get<'translation' | 'review'>(KEY_MODE, 'translation');
 
   // Initialize git utils
@@ -73,7 +74,7 @@ export function registerCommands(context: vscode.ExtensionContext) {
 
 async function openTranslationFile(uri?: vscode.Uri) {
     if (!isKubelingoEnabled) {
-    vscode.window.showInformationMessage('KubelingoAssist is disabled. Please enable it first.');
+    i18n.showInformationMessage('messages.kubelingoDisabled');
     return;
   }
 
@@ -81,10 +82,7 @@ async function openTranslationFile(uri?: vscode.Uri) {
   if (gitUtils) {
     const isK8sRepo = await gitUtils.isKubernetesWebsiteRepository();
     if (!isK8sRepo) {
-      vscode.window.showErrorMessage(
-        'This extension only works with the Kubernetes documentation repository (kubernetes/website). ' +
-        'Please open the kubernetes/website repository to use translation features.'
-      );
+      i18n.showErrorMessage('messages.notKubernetesRepo');
       return;
     }
   }
@@ -96,16 +94,13 @@ async function openTranslationFile(uri?: vscode.Uri) {
   else if (currentEditor) filePath = currentEditor.document.uri.fsPath;
 
   if (!filePath) {
-    vscode.window.showErrorMessage('활성화된 파일이 없습니다.');
+    i18n.showErrorMessage('messages.noActiveFile');
     return;
   }
 
   const translationPath = await getTranslationPath(filePath);
   if (!translationPath) {
-    vscode.window.showErrorMessage(
-      '번역 파일 경로를 찾을 수 없습니다. ' +
-      '이 확장 프로그램은 Kubernetes 문서 저장소의 /content/en/ 또는 /content/{언어}/ 구조에서 작동합니다.'
-    );
+    i18n.showErrorMessage('messages.cannotFindTranslationPath');
     return;
   }
 
@@ -125,17 +120,14 @@ async function openReviewFile() {
   
   if (!gitUtils) {
     console.log('Git utilities not available');
-    vscode.window.showErrorMessage('Git utilities not available');
+    i18n.showErrorMessage('messages.gitUtilitiesNotAvailable');
     return;
   }
 
   // Check if this is a kubernetes/website repository
   const isK8sRepo = await gitUtils.isKubernetesWebsiteRepository();
   if (!isK8sRepo) {
-    vscode.window.showErrorMessage(
-      'This extension only works with the Kubernetes documentation repository (kubernetes/website). ' +
-      'Please open the kubernetes/website repository to use review mode.'
-    );
+    i18n.showErrorMessage('messages.kubernetesRepoOnly');
     return;
   }
 
@@ -146,7 +138,7 @@ async function openReviewFile() {
     
     if (!commitInfo) {
       console.log('No recent commits found');
-      vscode.window.showErrorMessage('No recent commits found');
+      i18n.showErrorMessage('messages.noRecentCommits');
       return;
     }
 
@@ -156,11 +148,7 @@ async function openReviewFile() {
     
     if (translationFiles.length === 0) {
       console.log('No translation files found after filtering');
-      vscode.window.showErrorMessage(
-        'No translation files found in recent commits. ' +
-        'This extension works with Kubernetes documentation repositories that have content/{language} structure. ' +
-        'Make sure you have committed some translated markdown files in the expected directory structure.'
-      );
+      i18n.showErrorMessage('messages.noTranslationFilesFound');
       return;
     }
 
@@ -169,16 +157,16 @@ async function openReviewFile() {
       translationFiles.map(async file => {
         return {
           label: vscode.workspace.asRelativePath(file.absPath, false), // 보기용은 상대경로
-          description: file.status === 'M' ? 'Modified'
-                    : file.status === 'A' ? 'Added'
-                    : file.status ?? 'Other',
-          detail: `From commit: ${commitInfo.message}`,
+          description: file.status === 'M' ? i18n.t('ui.fileStatus.modified')
+                    : file.status === 'A' ? i18n.t('ui.fileStatus.added')
+                    : i18n.t('ui.fileStatus.other'),
+          detail: i18n.t('ui.fromCommit', { message: commitInfo.message }),
           filePath: file.absPath  // 실제 사용할 경로는 절대경로!
         };
       })
     );
-    const selectedFile = await vscode.window.showQuickPick(quickPickItems, {
-      placeHolder: 'Select a translation file to review',
+    const selectedFile = await i18n.showQuickPick(quickPickItems, {
+      placeholderKey: 'ui.selectFileToReview',
       matchOnDescription: true,
       matchOnDetail: true
     });
@@ -188,14 +176,14 @@ async function openReviewFile() {
       await openFileInReviewMode(selectedFile.filePath);
     }
   } catch (error) {
-    vscode.window.showErrorMessage(`Failed to get recent commits: ${error}`);
+    i18n.showErrorMessage('messages.failedToGetRecentCommits', { error: String(error) });
   }
 }
 
 
 function toggleSyncScroll() {
   if (!isKubelingoEnabled) {
-    vscode.window.showInformationMessage('KubelingoAssist is disabled. Please enable it first.');
+    i18n.showInformationMessage('messages.kubelingoDisabled');
     return;
   }
 
@@ -203,10 +191,10 @@ function toggleSyncScroll() {
 
   if (isSyncScrollEnabled) {
     setupSynchronizedScrolling();
-    vscode.window.showInformationMessage('동기화 스크롤이 활성화되었습니다.');
+    i18n.showInformationMessage('messages.syncScrollEnabled');
   } else {
     cleanupScrollListeners();
-    vscode.window.showInformationMessage('동기화 스크롤이 비활성화되었습니다.');
+    i18n.showInformationMessage('messages.syncScrollDisabled');
   }
 
   // 저장 + 웹뷰 방송(단일 창구)
@@ -224,9 +212,9 @@ function toggleKubelingo() {
   console.log('toggleKubelingo new state:', isKubelingoEnabled);
 
   if (isKubelingoEnabled) {
-    vscode.window.showInformationMessage('KubelingoAssist enabled.');
+    i18n.showInformationMessage('messages.kubelingoEnabled');
   } else {
-    vscode.window.showInformationMessage('KubelingoAssist disabled.');
+    i18n.showInformationMessage('messages.kubelingoDisabledMsg');
     // Disable sync scroll when kubelingo is disabled
     if (isSyncScrollEnabled) {
       isSyncScrollEnabled = false;
@@ -251,16 +239,16 @@ function toggleKubelingo() {
 
 function changeMode(mode: 'translation' | 'review') {
   if (!isKubelingoEnabled) {
-    vscode.window.showInformationMessage('KubelingoAssist is disabled. Please enable it first.');
+    i18n.showInformationMessage('messages.kubelingoDisabled');
     return;
   }
 
   currentMode = mode;
 
   if (currentMode === 'review') {
-    vscode.window.showInformationMessage('Review mode enabled. You can now see changed files from recent commits.');
+    i18n.showInformationMessage('messages.reviewModeEnabled');
   } else {
-    vscode.window.showInformationMessage('Translation mode enabled.');
+    i18n.showInformationMessage('messages.translationModeEnabled');
   }
 
   // 저장 + 웹뷰 방송
@@ -274,7 +262,7 @@ function changeMode(mode: 'translation' | 'review') {
 
 async function openFileInReviewMode(filePath: string) {
   if (!gitUtils) {
-    vscode.window.showErrorMessage('Git utilities not available');
+    i18n.showErrorMessage('messages.gitUtilitiesNotAvailable');
     return;
   }
 
@@ -282,7 +270,7 @@ async function openFileInReviewMode(filePath: string) {
     // Get the original English file path
     const originalEnglishPath = gitUtils.getOriginalEnglishPath(filePath);
     if (!originalEnglishPath) {
-      vscode.window.showErrorMessage('Could not determine original English file path');
+      i18n.showErrorMessage('messages.couldNotDetermineOriginalPath');
       return;
     }
 
@@ -290,8 +278,8 @@ async function openFileInReviewMode(filePath: string) {
     await openSplitView(originalEnglishPath, filePath);
     await statusBarManager.updateAllStatusBarItems(originalEnglishPath, filePath);
 
-    vscode.window.showInformationMessage(`Opened ${filePath} with original English file for review`);
+    i18n.showInformationMessage('messages.openedForReview', { path: filePath });
   } catch (error) {
-    vscode.window.showErrorMessage(`Failed to open file in review mode: ${error}`);
+    i18n.showErrorMessage('messages.failedToOpenReviewMode', { error: String(error) });
   }
 }

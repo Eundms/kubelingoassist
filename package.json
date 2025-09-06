@@ -119,8 +119,8 @@
       },
       {
         "command": "kubelingoassist.toggleSyncScroll",
-        "key": "ctrl+shift+s",
-        "mac": "cmd+shift+s",
+        "key": "ctrl+shift+z",
+        "mac": "cmd+shift+z",
         "when": "editorTextFocus || view == kubelingoassist-view"
       },
       {
