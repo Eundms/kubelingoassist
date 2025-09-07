@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { ConfigManager } from './config';
 import { AIService } from './ai-service';
+import { notificationManager } from '../notifications';
 
 export class AICommands {
   private configManager: ConfigManager;
@@ -52,16 +53,17 @@ export class AICommands {
     if (apiKey) {
       try {
         await this.configManager.setAPIKey(provider, apiKey);
-        vscode.window.showInformationMessage(`${provider.toUpperCase()} API Key saved securely.`);
+        notificationManager.showSuccess('notifications.success.apiKeySaved', { provider: provider.toUpperCase() });
       } catch (error) {
-        vscode.window.showErrorMessage(`Failed to save API key: ${error}`);
+        notificationManager.showError('notifications.error.failedToSaveApiKey', { error: String(error) });
       }
     }
   }
 
   async deleteAPIKey(provider: string): Promise<void> {
-    const confirm = await vscode.window.showWarningMessage(
-      `Delete ${provider.toUpperCase()} API Key?`,
+    const confirm = await notificationManager.showWarning(
+      'notifications.warning.deleteApiKey',
+      { provider: provider.toUpperCase() },
       'Delete',
       'Cancel'
     );
@@ -69,9 +71,9 @@ export class AICommands {
     if (confirm === 'Delete') {
       try {
         await this.configManager.deleteAPIKey(provider);
-        vscode.window.showInformationMessage(`${provider.toUpperCase()} API Key deleted.`);
+        notificationManager.showSuccess('notifications.success.apiKeyDeleted', { provider: provider.toUpperCase() });
       } catch (error) {
-        vscode.window.showErrorMessage(`Failed to delete API key: ${error}`);
+        notificationManager.showError('notifications.error.failedToDeleteApiKey', { error: String(error) });
       }
     }
   }
@@ -82,8 +84,9 @@ export class AICommands {
       .map(([provider, hasKey]) => `${provider}: ${hasKey ? '✓ Configured' : '✗ Not configured'}`)
       .join('\n');
 
-    vscode.window.showInformationMessage(
-      `API Key Status:\n${statusText}`,
+    notificationManager.showInfo(
+      'notifications.info.apiKeyStatus',
+      { statusText },
       'Configure API Keys'
     ).then(action => {
       if (action === 'Configure API Keys') {
@@ -95,7 +98,7 @@ export class AICommands {
   async translateSelectedText(): Promise<void> {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
-      vscode.window.showErrorMessage('No active editor');
+      notificationManager.showError('notifications.error.noActiveEditor');
       return;
     }
 
@@ -103,7 +106,7 @@ export class AICommands {
     const selectedText = editor.document.getText(selection);
     
     if (!selectedText) {
-      vscode.window.showErrorMessage('No text selected');
+      notificationManager.showError('notifications.error.noTextSelected');
       return;
     }
 
@@ -112,8 +115,9 @@ export class AICommands {
       const hasKey = await this.configManager.hasAPIKey(config.provider);
       
       if (!hasKey) {
-        const action = await vscode.window.showErrorMessage(
-          `No API key configured for ${config.provider.toUpperCase()}`,
+        const action = await notificationManager.showError(
+          'notifications.error.noApiKey',
+          { provider: config.provider.toUpperCase() },
           'Configure API Key'
         );
         
@@ -145,14 +149,14 @@ export class AICommands {
             editBuilder.replace(selection, response.translatedText);
           });
 
-          vscode.window.showInformationMessage('Translation completed!');
+          notificationManager.showSuccess('notifications.success.translationCompleted');
         } catch (error) {
-          vscode.window.showErrorMessage(`Translation failed: ${error}`);
+          notificationManager.showError('notifications.error.translationFailed', { error: String(error) });
         }
       });
 
     } catch (error) {
-      vscode.window.showErrorMessage(`Failed to translate: ${error}`);
+      notificationManager.showError('notifications.error.translationFailed', { error: String(error) });
     }
   }
 

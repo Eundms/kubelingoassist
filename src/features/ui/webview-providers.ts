@@ -1,16 +1,64 @@
 // src/webview-providers.ts
 import * as vscode from 'vscode';
+import { notificationManager } from '../notifications';
+
+// Types and Interfaces
+interface WebviewMessage {
+  type: string;
+  payload?: any;
+  mode?: 'translation' | 'review';
+}
+
+interface WebviewState {
+  syncScrollEnabled: boolean;
+  kubelingoEnabled: boolean;
+  mode: 'translation' | 'review';
+}
+
+interface WebviewConfig {
+  VIEW_TYPE: string;
+  UI_DIST_PATH: string[];
+  COMMANDS: {
+    OPEN_TRANSLATION_FILE: string;
+    OPEN_REVIEW_FILE: string;
+    TOGGLE_SYNC_SCROLL: string;
+    TOGGLE_KUBELINGO: string;
+    CHANGE_MODE: string;
+  };
+  FILES: {
+    MAIN_JS: string;
+    MAIN_CSS: string;
+  };
+}
+
+// Configuration Constants
+const WEBVIEW_CONFIG: WebviewConfig = {
+  VIEW_TYPE: 'kubelingoassist-view',
+  UI_DIST_PATH: ['ui', 'dist'],
+  COMMANDS: {
+    OPEN_TRANSLATION_FILE: 'kubelingoassist.openTranslationFile',
+    OPEN_REVIEW_FILE: 'kubelingoassist.openReviewFile',
+    TOGGLE_SYNC_SCROLL: 'kubelingoassist.toggleSyncScroll',
+    TOGGLE_KUBELINGO: 'kubelingoassist.toggleKubelingo',
+    CHANGE_MODE: 'kubelingoassist.changeMode',
+  },
+  FILES: {
+    MAIN_JS: 'main.js',
+    MAIN_CSS: 'main.css',
+  },
+};
 
 /**
  * React Webview 호스트 (React가 렌더/상태 관리, 여긴 번들 로드 + 브리지)
  */
 export class TranslationViewProvider implements vscode.WebviewViewProvider {
-  public static readonly viewType = 'kubelingoassist-view';
+  public static readonly viewType = WEBVIEW_CONFIG.VIEW_TYPE;
   private readonly views = new Set<vscode.WebviewView>();
-
-  private isSyncScrollEnabled = false;
-  private isKubelingoEnabled = false;
-  private currentMode: 'translation' | 'review' = 'translation';
+  private state: WebviewState = {
+    syncScrollEnabled: false,
+    kubelingoEnabled: false,
+    mode: 'translation',
+  };
 
   constructor(private readonly _extensionUri: vscode.Uri) {}
 
@@ -35,34 +83,15 @@ export class TranslationViewProvider implements vscode.WebviewViewProvider {
     // ✅ 모듈 번들과 동적 chunk(assets/* 포함) 접근을 위해 dist 를 루트로 허용
     webview.options = {
       enableScripts: true,
-      localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, 'ui', 'dist')],
+      localResourceRoots: [vscode.Uri.joinPath(this._extensionUri, ...WEBVIEW_CONFIG.UI_DIST_PATH)],
     };
 
     // 최초 1회만 HTML 주입
-    webview.html = this._getHtml(webview, {
-      syncScrollEnabled: this.isSyncScrollEnabled,
-      kubelingoEnabled: this.isKubelingoEnabled,
-      mode: this.currentMode,
-    });
+    webview.html = this._getHtml(webview, this.state);
 
     // UI → 확장 브리지
-    webview.onDidReceiveMessage(async (msg: any) => {
-      console.log('Webview received message:', msg);
-      switch (msg?.type) {
-        case 'openTranslationFile':
-          vscode.commands.executeCommand('kubelingoassist.openTranslationFile'); break;
-        case 'openReviewFile':
-          vscode.commands.executeCommand('kubelingoassist.openReviewFile'); break;
-        case 'toggleSyncScroll':
-          vscode.commands.executeCommand('kubelingoassist.toggleSyncScroll'); break;
-        case 'toggleKubelingo':
-          console.log('Executing toggleKubelingo command');
-          vscode.commands.executeCommand('kubelingoassist.toggleKubelingo'); break;
-        case 'changeMode':
-          vscode.commands.executeCommand('kubelingoassist.changeMode', msg.mode); break;
-        case 'aiChat':
-          vscode.window.showInformationMessage(`AI Message: ${msg?.payload?.message ?? ''}`); break;
-      }
+    webview.onDidReceiveMessage(async (msg: WebviewMessage) => {
+      this._handleWebviewMessage(msg);
     });
 
     // 초기 상태 방송(로딩 타이밍 커버)
@@ -70,66 +99,124 @@ export class TranslationViewProvider implements vscode.WebviewViewProvider {
   }
 
   public setSyncScrollEnabled(enabled: boolean) {
-    this.isSyncScrollEnabled = enabled;
-    this._broadcast();
+    this._updateState({ syncScrollEnabled: enabled });
   }
 
   public setKubelingoEnabled(enabled: boolean) {
-    this.isKubelingoEnabled = enabled;
-    this._broadcast();
+    this._updateState({ kubelingoEnabled: enabled });
   }
 
   public setMode(mode: 'translation' | 'review') {
-    this.currentMode = mode;
-    this._broadcast();
+    this._updateState({ mode });
   }
 
-  public broadcastState(state: { syncScrollEnabled?: boolean; kubelingoEnabled?: boolean; mode?: 'translation' | 'review' }) {
-    if (typeof state.syncScrollEnabled === 'boolean') this.isSyncScrollEnabled = state.syncScrollEnabled;
-    if (typeof state.kubelingoEnabled === 'boolean') this.isKubelingoEnabled = state.kubelingoEnabled;
-    if (state.mode) this.currentMode = state.mode;
+  public broadcastState(partialState: Partial<WebviewState>) {
+    this._updateState(partialState);
+  }
+
+  private _updateState(partialState: Partial<WebviewState>) {
+    this.state = { ...this.state, ...partialState };
     this._broadcast();
   }
 
   private _broadcast() {
-    const payload = {
-      syncScrollEnabled: this.isSyncScrollEnabled,
-      kubelingoEnabled: this.isKubelingoEnabled,
-      mode: this.currentMode,
-    };
-    for (const v of this.views) {
-      v.webview.postMessage({ type: 'stateUpdate', payload });
+    try {
+      for (const view of this.views) {
+        if (view.visible) {
+          view.webview.postMessage({ type: 'stateUpdate', payload: this.state });
+        }
+      }
+    } catch (error) {
+      console.error('Failed to broadcast state:', error);
     }
   }
 
-  private _getHtml(webview: vscode.Webview, initialState: any) {
-    // ✅ Vite 산출물: ES Module main.js + (필요 시) chunk-[hash].js 들
-    const scriptUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'ui', 'dist', 'main.js'),
-    );
-    const styleUri = webview.asWebviewUri(
-      vscode.Uri.joinPath(this._extensionUri, 'ui', 'dist', 'main.css'),
-    );
+  private _handleWebviewMessage(msg: WebviewMessage) {
+    try {
+      console.log('Webview received message:', msg);
+      
+      const messageHandlers: { [key: string]: () => void } = {
+        openTranslationFile: () => this._executeCommand(WEBVIEW_CONFIG.COMMANDS.OPEN_TRANSLATION_FILE),
+        openReviewFile: () => this._executeCommand(WEBVIEW_CONFIG.COMMANDS.OPEN_REVIEW_FILE),
+        toggleSyncScroll: () => this._executeCommand(WEBVIEW_CONFIG.COMMANDS.TOGGLE_SYNC_SCROLL),
+        toggleKubelingo: () => {
+          console.log('Executing toggleKubelingo command');
+          this._executeCommand(WEBVIEW_CONFIG.COMMANDS.TOGGLE_KUBELINGO);
+        },
+        changeMode: () => this._executeCommand(WEBVIEW_CONFIG.COMMANDS.CHANGE_MODE, msg.mode),
+        aiChat: () => {
+          const message = msg?.payload?.message ?? '';
+          notificationManager.showInfo('notifications.info.aiChatMessage', { message });
+        },
+      };
 
-    const nonce = this._nonce();
+      const handler = messageHandlers[msg?.type];
+      if (handler) {
+        handler();
+      } else {
+        console.warn('Unknown message type:', msg?.type);
+      }
+    } catch (error) {
+      console.error('Error handling webview message:', error);
+      notificationManager.showError('notifications.error.webviewMessageProcessingError', { error: String(error) });
+    }
+  }
 
-    // ✅ 포인트:
-    // - script-src 에 webview.cspSource 추가 → dist 에 있는 module/chunk 로드 허용
-    // - inline 초기상태 주입은 nonce 로 허용
-    // - <script type="module"> 로 ES Module 로딩 (Vite 기본)
+  private _executeCommand(command: string, ...args: any[]) {
+    vscode.commands.executeCommand(command, ...args);
+  }
+
+  private _getHtml(webview: vscode.Webview, initialState: WebviewState) {
+    const scriptUri = this._getResourceUri(webview, WEBVIEW_CONFIG.FILES.MAIN_JS);
+    const styleUri = this._getResourceUri(webview, WEBVIEW_CONFIG.FILES.MAIN_CSS);
+    const nonce = this._generateNonce();
+    const cspContent = this._generateCSP(webview.cspSource, nonce);
+
+    return this._generateHtmlTemplate({
+      styleUri,
+      scriptUri,
+      nonce,
+      cspContent,
+      initialState,
+    });
+  }
+
+  private _getResourceUri(webview: vscode.Webview, fileName: string): vscode.Uri {
+    return webview.asWebviewUri(
+      vscode.Uri.joinPath(this._extensionUri, ...WEBVIEW_CONFIG.UI_DIST_PATH, fileName)
+    );
+  }
+
+  private _generateCSP(cspSource: string, nonce: string): string {
+    return `
+      default-src 'none';
+      img-src ${cspSource} blob: data:;
+      style-src ${cspSource} 'unsafe-inline';
+      script-src 'nonce-${nonce}' ${cspSource};
+      font-src ${cspSource} data:;
+    `;
+  }
+
+  private _generateHtmlTemplate({
+    styleUri,
+    scriptUri,
+    nonce,
+    cspContent,
+    initialState,
+  }: {
+    styleUri: vscode.Uri;
+    scriptUri: vscode.Uri;
+    nonce: string;
+    cspContent: string;
+    initialState: WebviewState;
+  }): string {
     return /* html */ `<!DOCTYPE html>
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
   <meta
     http-equiv="Content-Security-Policy"
-    content="
-      default-src 'none';
-      img-src ${webview.cspSource} blob: data:;
-      style-src ${webview.cspSource} 'unsafe-inline';
-      script-src 'nonce-${nonce}' ${webview.cspSource};
-      font-src ${webview.cspSource} data:;
-    "
+    content="${cspContent}"
   />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>KubeLingoAssist</title>
@@ -146,7 +233,7 @@ export class TranslationViewProvider implements vscode.WebviewViewProvider {
 </html>`;
   }
 
-  private _nonce() {
+  private _generateNonce(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     return Array.from({ length: 32 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
   }

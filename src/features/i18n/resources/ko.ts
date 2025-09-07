@@ -52,6 +52,55 @@ export const ko: TranslationResource = {
     kubernetesRepoOnly: '이 확장 프로그램은 Kubernetes 문서 저장소(kubernetes/website)에서만 작동합니다. 리뷰 모드를 사용하려면 kubernetes/website 저장소를 열어주세요.',
   },
 
+  notifications: {
+    info: {
+      extensionActivated: '확장 프로그램이 활성화되었습니다.',
+      configurationSaved: '설정이 저장되었습니다.',
+      fileProcessed: '파일 처리가 완료되었습니다.',
+      operationCompleted: '작업이 완료되었습니다.',
+      dataExported: '데이터 내보내기가 완료되었습니다.',
+      settingsUpdated: '설정이 업데이트되었습니다.',
+      apiKeyStatus: 'API 키 상태:\n{statusText}',
+      aiChatMessage: 'AI 메시지: {message}',
+    },
+    warning: {
+      configurationMissing: '일부 설정이 누락되었습니다.',
+      performanceIssue: '성능 문제가 감지되었습니다.',
+      deprecatedFeature: '사용 중인 기능이 더 이상 지원되지 않습니다.',
+      connectionIssue: '연결에 문제가 있습니다.',
+      storageLimit: '저장소 용량이 부족합니다.',
+      unsavedChanges: '저장되지 않은 변경사항이 있습니다.',
+      deleteApiKey: '{provider} API 키를 삭제하시겠습니까?',
+      insufficientTranslationFiles: '동기화할 번역 파일이 부족합니다. 원본과 번역 파일을 모두 열어주세요.',
+    },
+    error: {
+      configurationError: '설정에 오류가 있습니다.',
+      networkError: '네트워크 오류가 발생했습니다.',
+      fileSystemError: '파일 시스템 오류가 발생했습니다.',
+      validationError: '유효성 검사에 실패했습니다.',
+      authenticationError: '인증에 실패했습니다.',
+      unexpectedError: '예상치 못한 오류가 발생했습니다.',
+      noActiveEditor: '활성화된 편집기가 없습니다.',
+      noTextSelected: '선택된 텍스트가 없습니다.',
+      noApiKey: '{provider}에 대한 API 키가 설정되지 않았습니다.',
+      translationFailed: '번역에 실패했습니다: {error}',
+      failedToSaveApiKey: 'API 키 저장에 실패했습니다: {error}',
+      failedToDeleteApiKey: 'API 키 삭제에 실패했습니다: {error}',
+      webviewMessageProcessingError: '웹뷰 메시지 처리 오류: {error}',
+    },
+    success: {
+      configurationLoaded: '설정이 성공적으로 로드되었습니다.',
+      connectionEstablished: '연결이 성공적으로 설정되었습니다.',
+      dataProcessed: '데이터 처리가 성공적으로 완료되었습니다.',
+      backupCreated: '백업이 생성되었습니다.',
+      updateInstalled: '업데이트가 설치되었습니다.',
+      taskCompleted: '작업이 성공적으로 완료되었습니다.',
+      apiKeySaved: '{provider} API 키가 안전하게 저장되었습니다.',
+      apiKeyDeleted: '{provider} API 키가 삭제되었습니다.',
+      translationCompleted: '번역이 완료되었습니다!',
+    },
+  },
+
   ui: {
     selectTargetLanguage: '번역할 대상 언어를 선택하세요',
     selectFileToReview: '리뷰할 번역 파일을 선택하세요',
@@ -61,6 +110,12 @@ export const ko: TranslationResource = {
       other: '기타',
     },
     fromCommit: '커밋에서: {message}',
+    statusBar: {
+      translationFile: '번역파일',
+      openTranslationFile: '번역 파일 열기',
+      lineComparison: '원본: {originalLines}줄, 번역: {translationLines}줄 ({percentage}%)',
+      autoRefreshLineCount: '현재 열려있는 파일들의 라인수를 자동으로 업데이트',
+    },
   },
 
   paths: {

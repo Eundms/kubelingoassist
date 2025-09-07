@@ -5,7 +5,7 @@
   "version": "0.0.3",
   "repository": {
     "type": "git",
-    "url": "https://github.com/eundms/k8s-translation-helper.git"
+    "url": "https://github.com/eundms/kubelingoassist.git"
   },
   "engines": {
     "vscode": "^1.75.0"
@@ -113,21 +113,21 @@
     "keybindings": [
       {
         "command": "kubelingoassist.openTranslationFile",
-        "key": "ctrl+shift+t",
+        "key": "alt+shift+t",
         "mac": "cmd+shift+t",
-        "when": "editorTextFocus || view == kubelingoassist-view"
+        "when": "editorTextFocus "
       },
       {
         "command": "kubelingoassist.toggleSyncScroll",
-        "key": "ctrl+shift+z",
-        "mac": "cmd+shift+z",
-        "when": "editorTextFocus || view == kubelingoassist-view"
+        "key": "alt+shift+e",
+        "mac": "cmd+shift+e",
+        "when": "editorTextFocus "
       },
       {
         "command": "kubelingoassist.openReviewFile",
-        "key": "ctrl+shift+r",
+        "key": "alt+shift+r",
         "mac": "cmd+shift+r",
-        "when": "editorTextFocus || view == kubelingoassist-view"
+        "when": "editorTextFocus "
       }
     ],
     "menus": {

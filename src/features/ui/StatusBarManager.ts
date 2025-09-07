@@ -1,32 +1,32 @@
 // src/status-bar.ts
 import * as vscode from 'vscode';
-import { extractLanguageCode, compareLineCounts } from '../translation/translation-utils';
+import { TranslationUtils } from '../translation/TranslationUtils';
+import { i18n } from '../i18n';
 
 export class StatusBarManager {
   private languageStatusBarItem: vscode.StatusBarItem;
   private currentOriginalPath?: string;
   private currentTranslationPath?: string;
   private updateTimeout?: NodeJS.Timeout;
+  private translationUtils = new TranslationUtils();
 
   constructor() {
-    // 번역 파일 열기 버튼
     this.languageStatusBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 99);
     this.languageStatusBarItem.command = 'kubelingoassist.openTranslationFile';
-    this.languageStatusBarItem.text = '$(globe) 번역파일';
-    this.languageStatusBarItem.tooltip = '번역 파일 열기';
+    this.languageStatusBarItem.text = `$(globe) ${i18n.t('ui.statusBar.translationFile')}`;
+    this.languageStatusBarItem.tooltip = i18n.t('ui.statusBar.openTranslationFile');
     this.languageStatusBarItem.show();
   }
 
   public async updateAllStatusBarItems(originalPath?: string, translationPath?: string) {
     if (originalPath && translationPath) {
-      // 현재 파일 경로 저장
       this.currentOriginalPath = originalPath;
       this.currentTranslationPath = translationPath;
 
-      const sourceLanguage = extractLanguageCode(originalPath);
-      const targetLanguage = extractLanguageCode(translationPath);
+      const sourceLanguage = this.translationUtils.extractLanguageCode(originalPath);
+      const targetLanguage = this.translationUtils.extractLanguageCode(translationPath);
 
-      const lineComparison = await compareLineCounts(originalPath, translationPath);
+      const lineComparison = await this.translationUtils.compareLineCounts(originalPath, translationPath);
       let lineInfo = '';
 
       if (lineComparison) {
@@ -36,16 +36,20 @@ export class StatusBarManager {
 
       this.languageStatusBarItem.text = `$(globe) ${sourceLanguage} → ${targetLanguage}${lineInfo}`;
       this.languageStatusBarItem.tooltip = lineComparison
-        ? `원본: ${lineComparison.originalLines}줄, 번역: ${lineComparison.translationLines}줄 (${lineComparison.percentage}%)`
-        : '번역 파일 열기';
+        ? i18n.t('ui.statusBar.lineComparison', {
+            originalLines: lineComparison.originalLines.toString(),
+            translationLines: lineComparison.translationLines.toString(),
+            percentage: lineComparison.percentage.toString()
+          })
+        : i18n.t('ui.statusBar.openTranslationFile');
     } else {
-      this.languageStatusBarItem.text = '$(globe) 번역파일';
-      this.languageStatusBarItem.tooltip = '번역 파일 열기';
+      this.languageStatusBarItem.text = `$(globe) ${i18n.t('ui.statusBar.translationFile')}`;
+      this.languageStatusBarItem.tooltip = i18n.t('ui.statusBar.openTranslationFile');
     }
   }
 
   /**
-   * 현재 열려있는 파일들의 라인수를 자동으로 업데이트
+   * Auto refresh line count for currently open files
    */
   public async refreshLineCount() {
     if (this.currentOriginalPath && this.currentTranslationPath) {
@@ -54,7 +58,7 @@ export class StatusBarManager {
   }
 
   /**
-   * 디바운싱을 적용한 라인수 업데이트 (문서 변경시 너무 자주 호출되는 것을 방지)
+   * Debounced line count update to prevent too frequent calls on document changes
    */
   public debouncedRefreshLineCount(delay: number = 1000) {
     if (this.updateTimeout) {

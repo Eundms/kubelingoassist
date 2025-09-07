@@ -1,3 +1,11 @@
 export * from './core';
-export * from './features';
+export {
+    // Translation classes (OOP approach)
+    TranslationUtils,
+    TranslationCommandManager,
+    ScrollSyncManager,
+    FileTranslationProgress,
+    // AI Service
+    AIService
+} from './features';
 export * from './validators';

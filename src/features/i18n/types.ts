@@ -61,6 +61,56 @@ export interface TranslationKeys {
     kubernetesRepoOnly: string;
   };
 
+  // Notification messages
+  notifications: {
+    info: {
+      extensionActivated: string;
+      configurationSaved: string;
+      fileProcessed: string;
+      operationCompleted: string;
+      dataExported: string;
+      settingsUpdated: string;
+      apiKeyStatus: string;
+      aiChatMessage: string;
+    };
+    warning: {
+      configurationMissing: string;
+      performanceIssue: string;
+      deprecatedFeature: string;
+      connectionIssue: string;
+      storageLimit: string;
+      unsavedChanges: string;
+      deleteApiKey: string;
+      insufficientTranslationFiles: string;
+    };
+    error: {
+      configurationError: string;
+      networkError: string;
+      fileSystemError: string;
+      validationError: string;
+      authenticationError: string;
+      unexpectedError: string;
+      noActiveEditor: string;
+      noTextSelected: string;
+      noApiKey: string;
+      translationFailed: string;
+      failedToSaveApiKey: string;
+      failedToDeleteApiKey: string;
+      webviewMessageProcessingError: string;
+    };
+    success: {
+      configurationLoaded: string;
+      connectionEstablished: string;
+      dataProcessed: string;
+      backupCreated: string;
+      updateInstalled: string;
+      taskCompleted: string;
+      apiKeySaved: string;
+      apiKeyDeleted: string;
+      translationCompleted: string;
+    };
+  };
+
   // UI Labels
   ui: {
     selectTargetLanguage: string;
@@ -71,6 +121,12 @@ export interface TranslationKeys {
       other: string;
     };
     fromCommit: string;
+    statusBar: {
+      translationFile: string;
+      openTranslationFile: string;
+      lineComparison: string;
+      autoRefreshLineCount: string;
+    };
   };
 
   // File paths and extensions
