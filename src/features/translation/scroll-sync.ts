@@ -16,6 +16,27 @@ export function setupSynchronizedScrolling() {
   const getTranslationEditors = () =>
     vscode.window.visibleTextEditors.filter(ed => isTranslationFile(ed.document.fileName));
 
+  // 동기화 시작 시 현재 en 파일의 위치를 기준으로 모든 번역 파일 동기화
+  const translationEditors = getTranslationEditors();
+  if (translationEditors.length >= 2) {
+    // en 파일 찾기 (경로에 /en/ 포함)
+    const enEditor = translationEditors.find(editor => 
+      editor.document.fileName.includes('/en/') || editor.document.fileName.includes('\\en\\')
+    );
+    
+    if (enEditor && enEditor.visibleRanges.length > 0) {
+      const currentTopLine = enEditor.visibleRanges[0].start.line;
+      
+      // en 파일 제외한 다른 번역 파일들을 같은 위치로 동기화
+      translationEditors
+        .filter(editor => editor !== enEditor)
+        .forEach(editor => {
+          const range = new vscode.Range(currentTopLine, 0, currentTopLine, 0);
+          editor.revealRange(range, vscode.TextEditorRevealType.AtTop);
+        });
+    }
+  }
+
   // revealRange로 인해 다시 스스로를 트리거하지 않도록 방지
   const updatingEditors = new WeakSet<vscode.TextEditor>();
   // 이벤트 폭주 방지를 위한 가벼운 디바운스(에디터별)

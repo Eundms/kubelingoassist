@@ -35,6 +35,7 @@ export interface TranslationKeys {
     kubelingoDisabled: string;
     enableKubelingoFirst: string;
     noActiveFile: string;
+    invalidFilePath: string;
     cannotFindTranslationPath: string;
     splitViewOpened: string;
     syncScrollEnabled: string;
@@ -54,6 +55,8 @@ export interface TranslationKeys {
     noTranslationFilesFound: string;
     openedForReview: string;
     failedToOpenReviewMode: string;
+    failedToGetRecentCommits: string;
+    couldNotDetermineOriginalPath: string;
     notKubernetesRepo: string;
     kubernetesRepoOnly: string;
   };

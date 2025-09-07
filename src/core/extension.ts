@@ -38,6 +38,11 @@ export function activate(context: vscode.ExtensionContext) {
     // 저장된 상태로 초기화 (상태바, 웹뷰 동기화)
     initStateFromStorage(context);
     
+    // 이미 열려있는 모든 문서에 대해 링크 검증 실행
+    vscode.workspace.textDocuments.forEach(document => {
+        linkValidator.validateLinks(document);
+    });
+    
     // 문서 변경 시 링크 검증 및 라인수 업데이트
     const onDidChangeTextDocument = vscode.workspace.onDidChangeTextDocument((event) => {
         linkValidator.validateLinks(event.document);
