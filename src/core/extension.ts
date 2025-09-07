@@ -1,14 +1,16 @@
 import * as vscode from 'vscode';
 import { TranslationViewProvider } from '../features/ui/webview-providers';
-import { StatusBarManager } from '../features/ui/status-bar';
-import { registerCommands, setDependencies, initStateFromStorage } from '../features/translation/commands';
-import { cleanupScrollListeners } from '../features/translation/scroll-sync';
+import { StatusBarManager } from '../features/ui/StatusBarManager';
+import { TranslationCommandManager } from '../features/translation/TranslationCommandManager';
+import { ScrollSyncManager } from '../features/translation/ScrollSyncManager';
 import { LinkValidator } from '../validators/link';
 import { AICommands } from '../features/ai/ai-commands';
 
 let statusBarManager: StatusBarManager;
 let linkValidator: LinkValidator;
 let aiCommands: AICommands;
+let translationCommandManager: TranslationCommandManager;
+let scrollSyncManager: ScrollSyncManager;
 
 export function activate(context: vscode.ExtensionContext) {
     // Status bar manager 초기화
@@ -20,6 +22,12 @@ export function activate(context: vscode.ExtensionContext) {
     // AI Commands 초기화
     aiCommands = new AICommands(context);
     
+    // Translation Command Manager 초기화
+    translationCommandManager = new TranslationCommandManager();
+    
+    // Scroll Sync Manager 초기화
+    scrollSyncManager = new ScrollSyncManager();
+    
     // Activity Bar 뷰 프로바이더 등록
     const provider = new TranslationViewProvider(context.extensionUri);
     context.subscriptions.push(
@@ -27,16 +35,16 @@ export function activate(context: vscode.ExtensionContext) {
     );
     
     // Commands 모듈에 의존성 설정
-    setDependencies(statusBarManager, provider);
+    translationCommandManager.setDependencies(statusBarManager, provider);
     
     // Commands 등록
-    registerCommands(context);
+    translationCommandManager.registerCommands(context);
     
     // AI Commands 등록
     aiCommands.registerCommands();
     
     // 저장된 상태로 초기화 (상태바, 웹뷰 동기화)
-    initStateFromStorage(context);
+    translationCommandManager.initStateFromStorage(context);
     
     // 이미 열려있는 모든 문서에 대해 링크 검증 실행
     vscode.workspace.textDocuments.forEach(document => {
@@ -77,7 +85,9 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-    cleanupScrollListeners();
+    if (scrollSyncManager) {
+        scrollSyncManager.cleanupScrollListeners();
+    }
     if (statusBarManager) {
         statusBarManager.dispose();
     }

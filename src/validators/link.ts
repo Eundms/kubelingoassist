@@ -1,7 +1,7 @@
 import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
-import { extractLanguageCode } from '../features/translation/translation-utils';
+import { TranslationUtils } from '../features/translation/TranslationUtils';
 
 interface LinkInfo {
     text: string;
@@ -37,6 +37,7 @@ const MESSAGES = {
 export class LinkValidator {
     private diagnostics: vscode.DiagnosticCollection;
     private codeActionProvider: LinkCodeActionProvider;
+    private translationUtils = new TranslationUtils();
 
     constructor() {
         this.diagnostics = vscode.languages.createDiagnosticCollection('kubelingoassist-links');
@@ -49,7 +50,7 @@ export class LinkValidator {
             return 0;
         }
 
-        const currentLanguage = extractLanguageCode(document.uri.fsPath);
+        const currentLanguage = this.translationUtils.extractLanguageCode(document.uri.fsPath);
         const diagnostics: vscode.Diagnostic[] = [];
         const text = document.getText();
 
@@ -221,6 +222,7 @@ export class LinkValidator {
 
 export class LinkCodeActionProvider implements vscode.CodeActionProvider {
     private disposables: vscode.Disposable[] = [];
+    private translationUtils = new TranslationUtils();
 
     constructor() {
         // Register the code action provider for markdown files
@@ -271,7 +273,7 @@ export class LinkCodeActionProvider implements vscode.CodeActionProvider {
 
             const linkText = match[1];
             const linkPath = match[2];
-            const currentLanguage = extractLanguageCode(document.uri.fsPath);
+            const currentLanguage = this.translationUtils.extractLanguageCode(document.uri.fsPath);
 
             if (currentLanguage === 'unknown') {
                 return undefined;

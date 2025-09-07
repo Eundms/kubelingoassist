@@ -1,16 +1,21 @@
 import * as vscode from 'vscode';
 
-suite('Extension Test Suite', () => {
-    vscode.window.showInformationMessage('Start all tests.');
+// Import all separated test suites
+import './translation-utils.test';
+import './link-validator-basic.test';
+import './link-validator-unit.test';
+import './code-action-provider.test';
+import './integration.test';
+import './edge-cases.test';
+
+suite('KubeLingoAssist Extension Test Suite', () => {
+    vscode.window.showInformationMessage('Starting KubeLingoAssist extension tests...');
     
-    test('Extension should be present', () => {
-        // Basic test to ensure the extension is loaded
-        // More specific tests are now in separate files:
-        // - translation-utils.test.ts: Translation utilities tests
-        // - link-validator.test.ts: Link validation and code action tests  
-        // - integration.test.ts: Integration tests and edge cases
-        
-        // This test just ensures the extension test suite runs
-        // All detailed functionality tests have been moved to dedicated files
+    // All individual test suites are automatically loaded via imports above
+    // This main test suite serves as the entry point and orchestrator
+    
+    test('Test suite initialization', () => {
+        // This test ensures the test suite loads correctly
+        // Individual functionality tests are in their respective files
     });
 });

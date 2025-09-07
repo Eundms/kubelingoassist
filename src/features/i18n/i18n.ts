@@ -2,18 +2,17 @@ import * as vscode from 'vscode';
 import { TranslationKeys, SupportedLanguage, TranslationResource } from './types';
 import { en } from './resources/en';
 import { ko } from './resources/ko';
-import { ja } from './resources/ja';
 
 /**
  * 다국어 지원을 위한 국제화(i18n) 클래스입니다.
  */
 export class I18n {
     private static instance: I18n;
-    private currentLanguage: SupportedLanguage = 'en';
+    private currentLanguage: SupportedLanguage = 'ko';
     private resources: Record<SupportedLanguage, TranslationResource> = {
         'en': en,
         'ko': ko,
-        'ja': ja,
+        'ja': en,
         'zh-cn': en, // TODO: Add Chinese Simplified
         'zh': en,    // TODO: Add Chinese Traditional
         'fr': en,    // TODO: Add French

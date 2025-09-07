@@ -1,2 +1,2 @@
 export * from './webview-providers';
-export * from './status-bar';
+export * from './StatusBarManager';

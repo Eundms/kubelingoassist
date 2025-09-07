@@ -52,6 +52,55 @@ export const en: TranslationResource = {
     kubernetesRepoOnly: 'This extension only works with the Kubernetes documentation repository (kubernetes/website). Please open the kubernetes/website repository to use review mode.',
   },
 
+  notifications: {
+    info: {
+      extensionActivated: 'Extension has been activated.',
+      configurationSaved: 'Configuration has been saved.',
+      fileProcessed: 'File processing completed.',
+      operationCompleted: 'Operation completed.',
+      dataExported: 'Data export completed.',
+      settingsUpdated: 'Settings have been updated.',
+      apiKeyStatus: 'API Key Status:\n{statusText}',
+      aiChatMessage: 'AI Message: {message}',
+    },
+    warning: {
+      configurationMissing: 'Some configuration is missing.',
+      performanceIssue: 'Performance issue detected.',
+      deprecatedFeature: 'The feature you are using is deprecated.',
+      connectionIssue: 'Connection issue detected.',
+      storageLimit: 'Storage limit reached.',
+      unsavedChanges: 'You have unsaved changes.',
+      deleteApiKey: 'Delete {provider} API Key?',
+      insufficientTranslationFiles: 'Insufficient translation files for synchronization. Please open both original and translation files.',
+    },
+    error: {
+      configurationError: 'Configuration error occurred.',
+      networkError: 'Network error occurred.',
+      fileSystemError: 'File system error occurred.',
+      validationError: 'Validation failed.',
+      authenticationError: 'Authentication failed.',
+      unexpectedError: 'An unexpected error occurred.',
+      noActiveEditor: 'No active editor',
+      noTextSelected: 'No text selected',
+      noApiKey: 'No API key configured for {provider}',
+      translationFailed: 'Translation failed: {error}',
+      failedToSaveApiKey: 'Failed to save API key: {error}',
+      failedToDeleteApiKey: 'Failed to delete API key: {error}',
+      webviewMessageProcessingError: 'Error processing webview message: {error}',
+    },
+    success: {
+      configurationLoaded: 'Configuration loaded successfully.',
+      connectionEstablished: 'Connection established successfully.',
+      dataProcessed: 'Data processed successfully.',
+      backupCreated: 'Backup created successfully.',
+      updateInstalled: 'Update installed successfully.',
+      taskCompleted: 'Task completed successfully.',
+      apiKeySaved: '{provider} API Key saved securely.',
+      apiKeyDeleted: '{provider} API Key deleted.',
+      translationCompleted: 'Translation completed!',
+    },
+  },
+
   ui: {
     selectTargetLanguage: 'Select target language for translation',
     selectFileToReview: 'Select a translation file to review',
@@ -61,6 +110,12 @@ export const en: TranslationResource = {
       other: 'Other',
     },
     fromCommit: 'From commit: {message}',
+    statusBar: {
+      translationFile: 'Translation File',
+      openTranslationFile: 'Open Translation File',
+      lineComparison: 'Original: {originalLines} lines, Translation: {translationLines} lines ({percentage}%)',
+      autoRefreshLineCount: 'Automatically update line count for currently open files',
+    },
   },
 
   paths: {
