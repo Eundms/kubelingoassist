@@ -47,28 +47,24 @@ jobs:
       run: |
         # Extract changelog for current version
         VERSION=${{ steps.version.outputs.VERSION }}
-        sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d' > current_changelog.md
-        echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
-        cat current_changelog.md >> $GITHUB_OUTPUT
-        echo "EOF" >> $GITHUB_OUTPUT
+        if grep -q "## \[$VERSION\]" CHANGELOG.md; then
+          sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d' > current_changelog.md
+        else
+          echo "## Release $VERSION" > current_changelog.md
+          echo "See full changelog in CHANGELOG.md" >> current_changelog.md
+        fi
+        {
+          echo "CHANGELOG<<EOF"
+          cat current_changelog.md
+          echo "EOF"
+        } >> $GITHUB_OUTPUT
 
     - name: Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Release ${{ steps.version.outputs.VERSION }}
+        tag_name: ${{ github.ref_name }}
+        name: Release ${{ steps.version.outputs.VERSION }}
         body: ${{ steps.changelog.outputs.CHANGELOG }}
+        files: ./kubelingoassist-${{ steps.version.outputs.VERSION }}.vsix
         draft: false
         prerelease: false
-
-    - name: Upload VSIX
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ./k8s-translation-helper-${{ steps.version.outputs.VERSION }}.vsix
-        asset_name: k8s-translation-helper-${{ steps.version.outputs.VERSION }}.vsix
-        asset_content_type: application/zip
