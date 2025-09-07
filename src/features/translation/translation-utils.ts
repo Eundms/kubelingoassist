@@ -5,7 +5,7 @@ import { i18n, LANGUAGE_NAMES, SUPPORTED_LANGUAGES, LANGUAGE_OPTIONS, LanguageIn
 /**
  * 번역 진행률 정보를 나타내는 인터페이스입니다.
  */
-export interface TranslationProgress {
+export interface FileTranslationProgress {
     /** 원본 파일의 총 라인 수 */
     originalLines: number;
     /** 번역 파일의 총 라인 수 */
@@ -134,7 +134,7 @@ export class TranslationUtils {
      * @param translationPath - 번역 파일의 절대 경로
      * @returns 번역 진행률 정보 또는 null
      */
-    async compareLineCounts(originalPath: string, translationPath: string): Promise<TranslationProgress | null> {
+    async compareLineCounts(originalPath: string, translationPath: string): Promise<FileTranslationProgress | null> {
         try {
             const filesExist = await this.checkBothFilesExist(originalPath, translationPath);
             if (!filesExist) {
@@ -315,7 +315,7 @@ export class TranslationUtils {
         return [originalLines, translationLines];
     }
 
-    private createProgressResult(originalLines: number, translationLines: number): TranslationProgress {
+    private createProgressResult(originalLines: number, translationLines: number): FileTranslationProgress {
         return {
             originalLines,
             translationLines,
@@ -352,6 +352,6 @@ export function extractLanguageCode(filePath: string): string {
     return translationUtils.extractLanguageCode(filePath);
 }
 
-export async function compareLineCounts(originalPath: string, translationPath: string): Promise<TranslationProgress | null> {
+export async function compareLineCounts(originalPath: string, translationPath: string): Promise<FileTranslationProgress | null> {
     return await translationUtils.compareLineCounts(originalPath, translationPath);
 }
