@@ -2,7 +2,7 @@
 
 A VS Code extension for Kubernetes documentation translation workflows.
 
-## 🚀 Installation & Usage
+## Installation & Usage
 
 ### Installation
 1. Download the latest VSIX file from [Releases](https://github.com/eundms/kubelingoassist/releases)
@@ -13,7 +13,7 @@ A VS Code extension for Kubernetes documentation translation workflows.
 - **Scroll Synchronization**: `Cmd+Shift+S` (Mac) / `Ctrl+Shift+S` (Windows/Linux)
 - **Activity Bar Panel**: Click 🌐 icon for control panel
 
-## 🛠️ Development
+## Development
 
 ### Prerequisites
 - Node.js 18+
@@ -30,20 +30,6 @@ npm run compile
 ```bash
 npm test          # Run tests
 npm run package   # Build VSIX package
-```
-
-## 📁 Project Structure
-
-```
-src/                    # Extension backend
-├── extension.ts        # Main entry point  
-├── commands.ts         # VS Code commands
-├── translation-utils.ts # Translation utilities
-└── validators/         # Validation logic
-
-ui/                     # React frontend
-├── src/components/     # React components
-└── ...                # UI source files
 ```
 
 ## 🤝 Contributing
