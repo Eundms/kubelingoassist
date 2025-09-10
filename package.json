@@ -15,12 +15,7 @@
   ],
   "main": "./out/core/extension.js",
   "activationEvents": [
-    "onView:kubelingoassist-view",
-    "onCommand:kubelingoassist.openTranslationFile",
-    "onCommand:kubelingoassist.openReviewFile",
-    "onCommand:kubelingoassist.toggleSyncScroll",
-    "onCommand:kubelingoassist.toggleKubelingo",
-    "onCommand:kubelingoassist.changeMode"
+    "onStartupFinished"
   ],
   "contributes": {
     "viewsContainers": {
@@ -37,42 +32,43 @@
         {
           "id": "kubelingoassist-view",
           "name": "Translation Helper",
-          "type": "webview"
+          "type": "webview",
+          "icon": "./kubelingoassist-icon.svg"
         }
       ]
     },
     "commands": [
       {
         "command": "kubelingoassist.openTranslationFile",
-        "title": "번역 파일 열기"
+        "title": "%commands.openTranslationFile%"
       },
       {
         "command": "kubelingoassist.openReviewFile",
-        "title": "리뷰 파일 열기"
+        "title": "%commands.openReviewFile%"
       },
       {
         "command": "kubelingoassist.toggleSyncScroll",
-        "title": "스크롤 동기화 토글"
+        "title": "%commands.toggleSyncScroll%"
       },
       {
         "command": "kubelingoassist.toggleKubelingo",
-        "title": "KubelingoAssist 토글"
+        "title": "%commands.toggleKubelingo%"
       },
       {
         "command": "kubelingoassist.changeMode",
-        "title": "모드 변경"
+        "title": "%commands.changeMode%"
       },
       {
         "command": "kubelingoassist.configureAI",
-        "title": "AI 설정 구성"
+        "title": "%commands.configureAI%"
       },
       {
         "command": "kubelingoassist.showAPIKeyStatus",
-        "title": "API 키 상태 확인"
+        "title": "%commands.showAPIKeyStatus%"
       },
       {
         "command": "kubelingoassist.translateSelected",
-        "title": "선택한 텍스트 번역"
+        "title": "%commands.translateSelected%"
       }
     ],
     "configuration": {

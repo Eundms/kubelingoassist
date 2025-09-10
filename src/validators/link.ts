@@ -70,13 +70,15 @@ export class LinkValidator {
             const endPos = document.positionAt(match.index + fullMatch.length);
             const range = new vscode.Range(startPos, endPos);
 
-            const expectedTranslationPath = this.getExpectedTranslationPath(document.uri.fsPath, linkPath, currentLanguage);
+            // Extract base path for links with anchor tags
+            const baseLinkPath = linkPath.split('#')[0];
+            const expectedTranslationPath = this.getExpectedTranslationPath(document.uri.fsPath, baseLinkPath, currentLanguage);
             let translationExists = false;
             
             if (expectedTranslationPath) {
-                if (linkPath.endsWith('/')) {
+                if (baseLinkPath.endsWith('/')) {
                     const folderExists = this.fileExists(expectedTranslationPath);
-                    const fileName = path.basename(linkPath.replace(/\/$/, '')) + '.md';
+                    const fileName = path.basename(baseLinkPath.replace(/\/$/, '')) + '.md';
                     const filePath = path.join(path.dirname(expectedTranslationPath), fileName);
                     const fileExists = this.fileExists(filePath);
                     translationExists = folderExists || fileExists;
@@ -86,7 +88,7 @@ export class LinkValidator {
             }
 
             if (translationExists) {
-                const isFolder = linkPath.endsWith('/');
+                const isFolder = baseLinkPath.endsWith('/');
                 const resourceType = isFolder ? '폴더' : '파일';
                 const suggestedPath = `/${currentLanguage.toLowerCase()}/docs/${linkPath}`;
                 const message = `⚠️ 번역 ${resourceType}이 존재하는데 언어 경로가 누락되었습니다.\n` +

@@ -116,6 +116,31 @@ export const en: TranslationResource = {
       lineComparison: 'Original: {originalLines} lines, Translation: {translationLines} lines ({percentage}%)',
       autoRefreshLineCount: 'Automatically update line count for currently open files',
     },
+    aiConfig: {
+      currentProviderSelect: 'Current provider: {currentProvider}. Select API provider to configure:',
+      enterApiKey: 'Enter your {provider} API Key',
+      apiKeyStorageNote: 'API Key will be stored securely in VS Code Secret Storage',
+      configuredStatus: '✓ Configured',
+      notConfiguredStatus: '✗ Not configured',
+      configureApiKeys: 'Configure API Keys',
+      setApiKeyDescription: 'Set {provider} API Key',
+      delete: 'Delete',
+    },
+    test: {
+      startingTests: 'Starting KubeLingoAssist extension tests...',
+    },
+    accessibility: {
+      translationModeSelector: 'Translation mode selector',
+      openReviewFile: 'Open review file',
+      openTranslationFile: 'Open translation file',
+      enableSyncScroll: 'Enable sync scroll',
+      disableSyncScroll: 'Disable sync scroll',
+    },
+    status: {
+      kubelingoAssist: 'KubeLingoAssist',
+      on: 'ON',
+      off: 'OFF',
+    },
   },
 
   paths: {

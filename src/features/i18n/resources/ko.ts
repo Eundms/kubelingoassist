@@ -116,6 +116,31 @@ export const ko: TranslationResource = {
       lineComparison: '원본: {originalLines}줄, 번역: {translationLines}줄 ({percentage}%)',
       autoRefreshLineCount: '현재 열려있는 파일들의 라인수를 자동으로 업데이트',
     },
+    aiConfig: {
+      currentProviderSelect: '현재 프로바이더: {currentProvider}. 구성할 API 프로바이더를 선택하세요:',
+      enterApiKey: '{provider} API 키를 입력하세요',
+      apiKeyStorageNote: 'API 키는 VS Code 보안 저장소에 안전하게 저장됩니다',
+      configuredStatus: '✓ 구성됨',
+      notConfiguredStatus: '✗ 구성되지 않음',
+      configureApiKeys: 'API 키 구성',
+      setApiKeyDescription: '{provider} API 키 설정',
+      delete: '삭제',
+    },
+    test: {
+      startingTests: 'KubeLingoAssist 확장 테스트를 시작합니다...',
+    },
+    accessibility: {
+      translationModeSelector: '번역 모드 선택기',
+      openReviewFile: '리뷰 파일 열기',
+      openTranslationFile: '번역 파일 열기',
+      enableSyncScroll: '동기 스크롤 활성화',
+      disableSyncScroll: '동기 스크롤 비활성화',
+    },
+    status: {
+      kubelingoAssist: 'KubeLingoAssist',
+      on: '켜짐',
+      off: '꺼짐',
+    },
   },
 
   paths: {

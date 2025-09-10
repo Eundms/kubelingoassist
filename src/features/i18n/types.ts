@@ -127,6 +127,31 @@ export interface TranslationKeys {
       lineComparison: string;
       autoRefreshLineCount: string;
     };
+    aiConfig: {
+      currentProviderSelect: string;
+      enterApiKey: string;
+      apiKeyStorageNote: string;
+      configuredStatus: string;
+      notConfiguredStatus: string;
+      configureApiKeys: string;
+      setApiKeyDescription: string;
+      delete: string;
+    };
+    test: {
+      startingTests: string;
+    };
+    accessibility: {
+      translationModeSelector: string;
+      openReviewFile: string;
+      openTranslationFile: string;
+      enableSyncScroll: string;
+      disableSyncScroll: string;
+    };
+    status: {
+      kubelingoAssist: string;
+      on: string;
+      off: string;
+    };
   };
 
   // File paths and extensions
