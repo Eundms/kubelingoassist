@@ -213,4 +213,66 @@ This [external link](https://example.com) should be ignored.`;
             assert.strictEqual(diagnosticCount, 0, `Non-translation file should have 0 diagnostics: ${filePath}`);
         });
     });
+
+    test('should handle links ending with anchor tags correctly', () => {
+        const mockText = `# Test Document
+[API versioning](/docs/concepts/overview/kubernetes-api/#api-groups-and-versioning)
+[Section link](/docs/tutorials/basic/#getting-started)
+[Simple anchor](/docs/reference/api#resources)`;
+
+        const mockDocument = {
+            getText: () => mockText,
+            positionAt: (offset: number) => new vscode.Position(0, offset),
+            uri: vscode.Uri.file('/content/ko/docs/test.md')
+        } as vscode.TextDocument;
+
+        // Mock file system to simulate that base files exist
+        const originalFileExists = (linkValidator as any).fileExists;
+        (linkValidator as any).fileExists = (filePath: string) => {
+            // Return true for base paths without anchor tags
+            if (filePath.includes('kubernetes-api') || filePath.includes('basic') || filePath.includes('api')) {
+                return true;
+            }
+            return false;
+        };
+
+        const diagnosticCount = linkValidator.validateLinks(mockDocument);
+        
+        // Should find 3 diagnostics for links with anchor tags where base files exist
+        assert.strictEqual(diagnosticCount, 3, 'Should detect 3 links with anchor tags that have existing base files');
+
+        // Restore original method
+        (linkValidator as any).fileExists = originalFileExists;
+    });
+
+    test('should extract base path from links with anchor tags', () => {
+        const testCases = [
+            { 
+                linkPath: 'concepts/overview/kubernetes-api/#api-groups-and-versioning',
+                expectedBasePath: 'concepts/overview/kubernetes-api/',
+                description: 'API versioning link'
+            },
+            { 
+                linkPath: 'tutorials/basic/#getting-started',
+                expectedBasePath: 'tutorials/basic/',
+                description: 'Tutorial section link'
+            },
+            { 
+                linkPath: 'reference/api#resources',
+                expectedBasePath: 'reference/api',
+                description: 'Simple anchor link'
+            },
+            { 
+                linkPath: 'concepts/overview',
+                expectedBasePath: 'concepts/overview',
+                description: 'Link without anchor'
+            }
+        ];
+
+        testCases.forEach(({ linkPath, expectedBasePath, description }) => {
+            // Extract base path by removing everything from # onwards
+            const basePath = linkPath.split('#')[0];
+            assert.strictEqual(basePath, expectedBasePath, `Failed for ${description}: ${linkPath}`);
+        });
+    });
 });

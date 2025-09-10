@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { ConfigManager } from './config';
 import { AIService } from './ai-service';
 import { notificationManager } from '../notifications';
+import { i18n } from '../i18n';
 
 export class AICommands {
   private configManager: ConfigManager;
@@ -19,23 +20,23 @@ export class AICommands {
     const items = [
       {
         label: 'OpenAI',
-        description: 'Set OpenAI API Key',
+        description: i18n.t('ui.aiConfig.setApiKeyDescription', { provider: 'OpenAI' }),
         provider: 'openai' as const
       },
       {
         label: 'Claude (Anthropic)',
-        description: 'Set Claude API Key', 
+        description: i18n.t('ui.aiConfig.setApiKeyDescription', { provider: 'Claude' }), 
         provider: 'claude' as const
       },
       {
         label: 'Gemini (Google)',
-        description: 'Set Gemini API Key',
+        description: i18n.t('ui.aiConfig.setApiKeyDescription', { provider: 'Gemini' }),
         provider: 'gemini' as const
       }
     ];
 
     const selected = await vscode.window.showQuickPick(items, {
-      placeHolder: `Current provider: ${currentProvider}. Select API provider to configure:`
+      placeHolder: i18n.t('ui.aiConfig.currentProviderSelect', { currentProvider })
     });
 
     if (selected) {
@@ -45,9 +46,9 @@ export class AICommands {
 
   async setAPIKey(provider: string): Promise<void> {
     const apiKey = await vscode.window.showInputBox({
-      prompt: `Enter your ${provider.toUpperCase()} API Key`,
+      prompt: i18n.t('ui.aiConfig.enterApiKey', { provider: provider.toUpperCase() }),
       password: true,
-      placeHolder: 'API Key will be stored securely in VS Code Secret Storage'
+      placeHolder: i18n.t('ui.aiConfig.apiKeyStorageNote')
     });
 
     if (apiKey) {
@@ -64,11 +65,11 @@ export class AICommands {
     const confirm = await notificationManager.showWarning(
       'notifications.warning.deleteApiKey',
       { provider: provider.toUpperCase() },
-      'Delete',
-      'Cancel'
+      i18n.t('ui.aiConfig.delete'),
+      i18n.t('common.cancel')
     );
 
-    if (confirm === 'Delete') {
+    if (confirm === i18n.t('ui.aiConfig.delete')) {
       try {
         await this.configManager.deleteAPIKey(provider);
         notificationManager.showSuccess('notifications.success.apiKeyDeleted', { provider: provider.toUpperCase() });
@@ -81,15 +82,15 @@ export class AICommands {
   async showAPIKeyStatus(): Promise<void> {
     const status = await this.aiService.checkAPIKeyStatus();
     const statusText = Object.entries(status)
-      .map(([provider, hasKey]) => `${provider}: ${hasKey ? '✓ Configured' : '✗ Not configured'}`)
+      .map(([provider, hasKey]) => `${provider}: ${hasKey ? i18n.t('ui.aiConfig.configuredStatus') : i18n.t('ui.aiConfig.notConfiguredStatus')}`)
       .join('\n');
 
     notificationManager.showInfo(
       'notifications.info.apiKeyStatus',
       { statusText },
-      'Configure API Keys'
+      i18n.t('ui.aiConfig.configureApiKeys')
     ).then(action => {
-      if (action === 'Configure API Keys') {
+      if (action === i18n.t('ui.aiConfig.configureApiKeys')) {
         this.showAPIKeySetupDialog();
       }
     });
